@@ -1,0 +1,55 @@
+# User data (mounted volume, never commit)
+data/
+
+# Environment config
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ruff_cache/
+*.egg-info/
+.eggs/
+dist/
+.venv/
+venv/
+.pytest_cache/
+*.log
+coverage/
+htmlcov/
+.coverage
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+
+# IDE
+.claude/
+.vscode/
+.idea/
+
+# Playwright / Browser Console temp files
+.playwright-cli/
+.playwright-mcp/
+
+# Superpowers session data
+.superpowers/
+
+# Agents skills cache
+.agents/
+
+# Cleanup plans
+.cleanup_plan.md
+
+# Agent skills lock files
+skills-lock.json
+
+# Project AI assistant configs
+CLAUDE.md
+AGENTS.md

@@ -1,0 +1,15 @@
+**/__pycache__
+**/*.pyc
+.git
+.gitignore
+*.md
+!README.md
+data/
+frontend/node_modules
+frontend/.vite
+.ruff_cache
+.pytest_cache
+*.egg-info
+dist/
+build/
+tests/
