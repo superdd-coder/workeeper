@@ -31,6 +31,7 @@ import { LocalModelCard } from "./local-model-card"
 import type { LoadState } from "./local-model-card"
 import { ModelDownloadDialog } from "@/components/model-download-dialog"
 import { HotWordsManager } from "./hot-words-manager"
+import { OneShotDashscopeDialog } from "./oneshot-dashscope-dialog"
 
 // ── Generic provider card for embedding/rerank ──
 
@@ -434,6 +435,9 @@ export function LLMProviderView() {
   // Hot words manager
   const [hotWordsManagerOpen, setHotWordsManagerOpen] = useState(false)
 
+  // OneShot Dashscope dialog
+  const [oneshotDialogOpen, setOneshotDialogOpen] = useState(false)
+
   // Language hints config editor state for file transcription openai_compatible adapter
   const [fileTransLangHints, setFileTransLangHints] = useState<LanguageHintOption[]>([])
 
@@ -651,16 +655,27 @@ export function LLMProviderView() {
   return (
     <div className="h-full overflow-auto p-6">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* ── OneShot Dashscope ── */}
+        <div className="flex items-center justify-between p-4 border border-dashed border-border rounded-lg bg-muted/30">
+          <div>
+            <p className="text-sm font-medium">Quick Setup</p>
+            <p className="text-xs text-muted-foreground">Configure all providers with a single Dashscope API Key</p>
+          </div>
+          <Button variant="outline" onClick={() => setOneshotDialogOpen(true)}>
+            <Zap className="h-4 w-4 mr-2" />OneShot Dashscope
+          </Button>
+        </div>
+
         {/* ── LLM Providers ── */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                <Bot className="h-6 w-6" />AI Settings
+                <Bot className="h-6 w-6" />LLM Settings
               </h2>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleAdd}><Plus className="h-4 w-4 mr-2" />Add LLM Provider</Button>
+              <Button variant="outline" onClick={handleAdd}><Plus className="h-4 w-4 mr-2" />Add LLM Provider</Button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -931,6 +946,17 @@ export function LLMProviderView() {
       <HotWordsManager
         open={hotWordsManagerOpen}
         onOpenChange={setHotWordsManagerOpen}
+      />
+      <OneShotDashscopeDialog
+        open={oneshotDialogOpen}
+        onOpenChange={setOneshotDialogOpen}
+        onSaved={() => {
+          fetchProviders()
+          fetchEmbProviders()
+          fetchRerankProviders()
+          fetchFileTransProviders()
+          fetchRtTransProviders()
+        }}
       />
     </div>
   )

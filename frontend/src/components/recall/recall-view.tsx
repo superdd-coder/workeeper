@@ -149,8 +149,14 @@ function SearchTab() {
             </div>
 
             <label className="flex items-center gap-2 text-xs cursor-pointer">
-              <input type="checkbox" checked={useReranker} onChange={(e) => setUseReranker(e.target.checked)} className="rounded" />
-              <TooltipLabel label="Use Reranker" tooltip="Apply a reranker model to re-score retrieved results for better precision." />
+              <input
+                type="checkbox"
+                checked={useReranker || useAgent}
+                disabled={useAgent}
+                onChange={(e) => setUseReranker(e.target.checked)}
+                className="rounded"
+              />
+              <TooltipLabel label="Use Reranker" tooltip={useAgent ? "Reranker is required for Agentic RAG" : "Apply a reranker model to re-score retrieved results for better precision."} />
             </label>
 
             {useReranker && rerankProviders.length > 0 && (
@@ -194,8 +200,17 @@ function SearchTab() {
           <Separator />
           <div className="space-y-3">
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-              <input type="checkbox" checked={useAgent} onChange={(e) => setUseAgent(e.target.checked)} className="rounded" />
-              <TooltipLabel label="Agentic RAG" tooltip="Uses LLM agent to analyze queries, route to relevant databases, and iteratively improve results." />
+              <input
+                type="checkbox"
+                checked={useAgent}
+                onChange={(e) => {
+                  const next = e.target.checked
+                  setUseAgent(next)
+                  if (next) setUseReranker(true)  // agentic requires reranker
+                }}
+                className="rounded"
+              />
+              <TooltipLabel label="Agentic RAG" tooltip="Uses LLM agent to analyze queries, route to relevant databases, and iteratively improve results. Reranker is required." />
             </label>
           </div>
         </CardContent>

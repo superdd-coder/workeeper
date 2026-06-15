@@ -1,13 +1,17 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAppStore } from "@/stores/app-store"
 import { MessageBubble } from "./message-bubble"
 import { ChatInput } from "./chat-input"
-import { MessageSquare } from "lucide-react"
+import { SourceDetailPanel } from "./source-detail-panel"
+import { MessageSquare, PanelRightClose } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { getLLMProviders } from "@/api/client"
+import type { Source } from "@/stores/app-store"
 
 export function ChatView() {
   const { messages, setProviders, setActiveProvider, setActiveModel, activeProvider, activeModel } = useAppStore()
   const bottomRef = useRef<HTMLDivElement>(null)
+  const [selectedSource, setSelectedSource] = useState<Source | null>(null)
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -34,26 +38,56 @@ export function ChatView() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  const handleSelectSource = (source: Source) => {
+    setSelectedSource(source)
+  }
+
+  const handleClosePanel = () => {
+    setSelectedSource(null)
+  }
+
+  const selectedSourceId = (selectedSource?.metadata?.id as string) || null
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 py-20">
-            <MessageSquare className="h-12 w-12 opacity-30" />
-            <p className="text-lg font-medium">Ask a question about your documents</p>
-            <p className="text-sm">Upload documents first, then start chatting</p>
+      <div className="flex-1 flex min-h-0">
+        {/* Main chat area */}
+        <div className={`flex flex-col flex-1 min-w-0 ${selectedSource ? "hidden sm:flex" : ""}`}>
+          <div className="flex-1 overflow-y-auto">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 py-20">
+                <MessageSquare className="h-12 w-12 opacity-30" />
+                <p className="text-lg font-medium">Ask a question about your documents</p>
+                <p className="text-sm">Upload documents first, then start chatting</p>
+              </div>
+            ) : (
+              <div className="max-w-3xl mx-auto py-4 px-4">
+                {messages.map((msg) => (
+                  <MessageBubble
+                    key={msg.id}
+                    message={msg}
+                    onSelectSource={handleSelectSource}
+                    selectedSourceId={selectedSourceId}
+                  />
+                ))}
+                <div ref={bottomRef} />
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="max-w-3xl mx-auto py-4 px-4">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
-            <div ref={bottomRef} />
-          </div>
-        )}
-      </div>
 
-      <ChatInput />
+          <ChatInput />
+        </div>
+
+        {/* Right-side source detail panel */}
+        <div className={`${selectedSource ? "w-full sm:w-[42vw] shrink-0" : "hidden"}`}>
+          <div className="sm:hidden absolute top-0 right-0 z-10 p-2">
+            <Button variant="ghost" size="sm" onClick={handleClosePanel}>
+              <PanelRightClose className="h-4 w-4 mr-1" /> Back to chat
+            </Button>
+          </div>
+          <SourceDetailPanel source={selectedSource} onClose={handleClosePanel} />
+        </div>
+      </div>
     </div>
   )
 }

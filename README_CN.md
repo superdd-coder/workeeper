@@ -28,6 +28,29 @@ docker compose up -d --build
 2. 进入 **Settings** → 添加 **LLM provider**（支持任何 OpenAI 兼容 API）
 3. 添加 **Embedding provider**，创建项目数据库
 
+### 更新
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Docker 会用最新代码重建镜像，同时保留 `data/` 目录（数据库、配置、历史记录）。
+
+### 一键配置 DashScope API
+
+如果你使用 [DashScope（阿里云百炼）](https://bailian.console.aliyun.com/)，可以一次性配置所有服务 — LLM、Embedding、Reranker、文件转写、实时转写。进入 **Settings** → **LLM Providers** 标签 → 点击 **OneShot Setting (DashScope API)**，输入 DashScope API Key，各项服务即按默认值创建：
+
+| 服务 | 默认模型 |
+|------|----------|
+| LLM | deepseek-v4-flash |
+| Embedding | text-embedding-v4 |
+| Reranker | qwen3-rerank |
+| 文件转写 | fun-asr |
+| 实时转写 | fun-asr-realtime |
+
+可在对话框中修改任意模型名称后一键应用。配置完成后可单独调整各服务或切换默认值。
+
 ## 工作流程
 
 Workeeper 将会议和文档连接成统一的项目记忆。

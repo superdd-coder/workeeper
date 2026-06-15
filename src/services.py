@@ -209,11 +209,18 @@ def init_services():
 
     # Reranker provider — only from user config
     rerank_cfg = config.rerank.default
+    if rerank_cfg:
+        logger.info("Reranker config found: name=%s, provider=%s, is_default=%s",
+                     rerank_cfg.name, rerank_cfg.provider, rerank_cfg.is_default)
+    else:
+        logger.warning("No default reranker provider in config (providers=%d)",
+                       len(config.rerank.providers))
     try:
         services.reranker_provider = create_reranker_provider(rerank_cfg) if rerank_cfg else None
     except Exception as e:
         logger.error("Failed to create reranker provider '%s': %s", rerank_cfg.name if rerank_cfg else "none", e)
         services.reranker_provider = None
+    logger.info("Reranker provider initialized: %s", type(services.reranker_provider).__name__ if services.reranker_provider else "None")
 
     # Auto-create default collection only on first run
     default_col = config.qdrant.default_collection

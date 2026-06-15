@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ChevronDown, ChevronUp, FileText } from "lucide-react"
+import { ChevronDown, ChevronUp, FileText, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,9 +7,11 @@ import type { Source } from "@/stores/app-store"
 
 interface SourcesCardProps {
   sources: Source[]
+  onSelectSource?: (source: Source) => void
+  selectedSourceId?: string | null
 }
 
-export function SourcesCard({ sources }: SourcesCardProps) {
+export function SourcesCard({ sources, onSelectSource, selectedSourceId }: SourcesCardProps) {
   const [expanded, setExpanded] = useState(false)
 
   if (!sources.length) return null
@@ -30,13 +32,26 @@ export function SourcesCard({ sources }: SourcesCardProps) {
       </Button>
 
       {expanded && (
-        <div className="px-3 pb-3 space-y-2">
-          {sources.map((s, i) => {
-            const source = (s.metadata?.source as string) || ""
+        <div className="px-3 pb-3 space-y-1.5">
+          {[...sources].sort((a, b) => b.score - a.score).map((s, i) => {
+            const sourceName = (s.metadata?.source as string) || ""
             const collection = (s.metadata?.collection as string) || ""
+            const chunkId = (s.metadata?.id as string) || ""
+            const isSelected = selectedSourceId === chunkId
+
             return (
-              <div key={i} className="text-xs border-l-2 border-primary/30 pl-3 py-1">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <button
+                key={chunkId || i}
+                type="button"
+                onClick={() => onSelectSource?.(s)}
+                className={`w-full text-left text-xs border-l-2 pl-3 py-1.5 pr-2 rounded-r transition-colors ${
+                  isSelected
+                    ? "border-primary bg-primary/5 hover:bg-primary/10"
+                    : "border-primary/30 hover:bg-accent/50"
+                }`}
+                title="Click to view source details"
+              >
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className="font-medium text-foreground">{i + 1}.</span>
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                     {(s.score * 100).toFixed(0)}%
@@ -46,14 +61,15 @@ export function SourcesCard({ sources }: SourcesCardProps) {
                       {collection}
                     </Badge>
                   )}
-                  {source && (
-                    <span className="text-muted-foreground truncate max-w-[200px]" title={source}>
-                      {source}
+                  {sourceName && (
+                    <span className="text-muted-foreground truncate max-w-[160px]" title={sourceName}>
+                      {sourceName}
                     </span>
                   )}
+                  {isSelected && <ExternalLink className="h-3 w-3 text-primary shrink-0 ml-auto" />}
                 </div>
-                <p className="text-muted-foreground leading-relaxed line-clamp-3">{s.text}</p>
-              </div>
+                <p className="text-muted-foreground leading-relaxed line-clamp-2">{s.text}</p>
+              </button>
             )
           })}
         </div>

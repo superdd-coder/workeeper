@@ -154,22 +154,33 @@ export function ChatInput() {
             variant={useAgent ? "default" : "outline"}
             size="sm"
             className="h-7 text-xs"
-            onClick={() => setUseAgent(!useAgent)}
+            onClick={() => {
+              const next = !useAgent
+              setUseAgent(next)
+              if (next) {
+                setUseReranker(true)  // agentic requires reranker
+              }
+            }}
             title={useAgent ? "Agentic RAG ON — uses LLM to analyze, route, and iterate" : "Agentic RAG OFF — direct retrieval"}
           >
             <Bot className="h-3 w-3 mr-1" />
             {useAgent ? "Agent" : "Direct"}
           </Button>
 
-          <Button
-            variant={useReranker ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => setUseReranker(!useReranker)}
-            title="Toggle reranker"
+          <button
+            disabled={useAgent}
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-7 px-3 gap-1.5 ${
+              useAgent
+                ? "bg-primary text-primary-foreground shadow-sm cursor-not-allowed opacity-80"
+                : useReranker
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                  : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+            }`}
+            onClick={() => { if (!useAgent) setUseReranker(!useReranker) }}
+            title={useAgent ? "Reranker is required for Agentic RAG" : "Toggle reranker"}
           >
             Rerank
-          </Button>
+          </button>
 
           {readyProviders.length > 0 && (
             <>

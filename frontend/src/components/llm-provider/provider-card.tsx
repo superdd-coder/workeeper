@@ -43,10 +43,6 @@ export function ProviderCard({ provider, onEdit, onRefresh }: ProviderCardProps)
   }
 
   const handleDelete = async () => {
-    if (provider.is_default) {
-      toast.error("Cannot delete the default provider")
-      return
-    }
     setDeleting(true)
     try {
       const res = await deleteLLMProvider(provider.id)
@@ -132,7 +128,7 @@ export function ProviderCard({ provider, onEdit, onRefresh }: ProviderCardProps)
             variant="ghost"
             size="sm"
             onClick={handleDelete}
-            disabled={provider.is_default || deleting}
+            disabled={deleting}
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="h-3 w-3 mr-1" />

@@ -4,16 +4,17 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from src.services import init_services
 from src.tasks import task_manager
 from src.config import get_config
 
 logging.getLogger("src").setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 logging.getLogger("meeting").setLevel(logging.INFO)
 logging.getLogger("src.meeting").setLevel(logging.INFO)
 logging.getLogger("task_manager").setLevel(logging.INFO)
@@ -68,6 +69,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Global error handling for provider/API errors ──────────
+
+def _format_provider_error(exc: Exception) -> tuple[int, str]:
+    """Map provider exceptions to (status_code, user_message)."""
+    import httpx
+
+    if isinstance(exc, httpx.ConnectError):
+        return 503, "无法连接到远程服务，请检查 base_url 和网络"
+    if isinstance(exc, httpx.TimeoutException):
+        return 504, "远程服务响应超时，请稍后重试"
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        if code == 401:
+            return 401, "API Key 无效或已过期"
+        if code == 403:
+            return 403, "API 访问被拒绝，请检查权限"
+        if code == 429:
+            return 429, "请求频率超限，请稍后重试"
+        if code >= 500:
+            return 502, f"远程服务错误 (HTTP {code})"
+        return code, f"远程服务返回错误: HTTP {code}"
+    if isinstance(exc, ValueError):
+        return 400, str(exc)
+    return 500, f"服务内部错误: {type(exc).__name__}"
+
+
+@app.middleware("http")
+async def provider_error_middleware(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        status, message = _format_provider_error(exc)
+        logger.error("Request %s %s failed: [%d] %s — %s",
+                     request.method, request.url.path, status, message, exc)
+        return JSONResponse(
+            status_code=status,
+            content={"error": message, "detail": str(exc)[:500]},
+        )
 
 from src.api.routes.query import router as query_router
 from src.api.routes.documents import router as documents_router

@@ -124,11 +124,19 @@ def retrieve_parent_child(
     # top_k controls the final parent count, not the child count.
     top_k = int(top_k) if top_k else 10
     child_search_limit = max(top_k * 10, 50)
+    logger.info(
+        "retrieve_parent_child: collection=%s, child_search_limit=%d, min_score=%.2f",
+        collection, child_search_limit, min_score,
+    )
     child_results = _db.search(
         collection=collection,
         query_vector=query_vector,
         top_k=child_search_limit,
         filter_condition=child_filter,
+    )
+    logger.info(
+        "retrieve_parent_child: collection=%s, got %d child results",
+        collection, len(child_results),
     )
 
     if min_score > 0:
@@ -220,3 +228,103 @@ def build_context(chunks: list) -> str:
         parts.append(text)
 
     return "\n\n".join(parts)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Shared retrieval orchestration — used by both chat and recall
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def retrieve_standard(
+    query: str,
+    target_collections: list[str],
+    top_k: int,
+    *,
+    embedding_overrides: dict[str, EmbeddingProvider],
+    search_mode: str = "dense",
+    min_score: float = 0.0,
+    reranker=None,
+    rerank_top_k: int | None = None,
+) -> list[RetrievedChunk]:
+    """Standard dense/hybrid retrieval across one or more collections.
+
+    This is the canonical non-agentic, non-parent-child retrieval path.
+    Used by both chat (/query) and recall (/recall/search).
+    """
+    from src.services import services
+    from src.rag.retriever import multi_collection_retrieve
+
+    if len(target_collections) > 1:
+        chunks = multi_collection_retrieve(
+            services.retriever, query, target_collections,
+            top_k=top_k, embedding_overrides=embedding_overrides,
+            search_mode=search_mode, min_score=min_score,
+        )
+    else:
+        col = target_collections[0]
+        embedding_override = embedding_overrides.get(col)
+        chunks = services.retriever.retrieve(
+            query=query, collection=col, top_k=top_k,
+            embedding_override=embedding_override,
+            search_mode=search_mode, min_score=min_score,
+        )
+
+    if reranker and chunks:
+        chunks = reranker.rerank(query, chunks, top_k=rerank_top_k)
+
+    return chunks
+
+
+def retrieve_parent_child_multi(
+    query: str,
+    target_collections: list[str],
+    top_k: int,
+    *,
+    embedding_overrides: dict[str, EmbeddingProvider],
+    min_score: float = 0.0,
+    reranker=None,
+    rerank_top_k: int | None = None,
+    return_child_groups: bool = False,
+) -> list[RetrievedChunk] | tuple[list[RetrievedChunk], list[dict]]:
+    """Parent-child retrieval across multiple collections.
+
+    This is the canonical non-agentic parent-child retrieval path.
+    Used by both chat (/query) and recall (/recall/search).
+
+    When return_child_groups=True, returns (chunks, child_groups) where
+    child_groups is a list of {"parent_id": ..., "children": [...]} dicts.
+    """
+    results: list[RetrievedChunk] = []
+    all_child_groups: dict[str, list[dict]] = {}
+
+    for col in target_collections:
+        emb = embedding_overrides.get(col)
+        chunks, groups = retrieve_parent_child(
+            query, col, top_k, embedding=emb, min_score=min_score,
+        )
+        for c in chunks:
+            c.metadata["collection"] = col
+        results.extend(chunks)
+        if return_child_groups:
+            for g in groups:
+                pid = g["parent_id"]
+                if pid not in all_child_groups:
+                    all_child_groups[pid] = []
+                all_child_groups[pid].extend(g["children"])
+
+    # Deduplicate by text
+    seen: set[str] = set()
+    unique = [r for r in results if r.text not in seen and not seen.add(r.text)]
+    results = sorted(unique, key=lambda x: x.score, reverse=True)[:top_k]
+
+    # Rerank
+    if reranker and results:
+        results = reranker.rerank(query, results, top_k=rerank_top_k)
+
+    if return_child_groups:
+        groups_list = [
+            {"parent_id": pid, "children": children}
+            for pid, children in all_child_groups.items()
+        ]
+        return results, groups_list
+    return results

@@ -10,14 +10,15 @@ from fastapi.responses import StreamingResponse
 
 from src.api.schemas import QueryRequest, QueryResponse, SourceItem
 from src.config import get_config
-from src.services import services
 from src.rag.agent import AgenticRAG, AgentResult
+from src.services import services
 from src.rag.collection_utils import (
     build_context,
     get_embedding_overrides,
-    retrieve_parent_child,
+    retrieve_parent_child_multi,
+    retrieve_standard,
 )
-from src.rag.retriever import multi_collection_retrieve
+from src.rag.agent import AgenticRAG, AgentResult
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -41,13 +42,18 @@ def _save_history(question: str, answer: str, collection: str, sources: list):
 
 def _resolve_params(req: QueryRequest, col_config: dict) -> dict:
     """Resolve all query parameters from request + collection config + global config."""
+    agent_enabled = req.use_agent and col_config.get("agent_enabled", col_config.get("self_rag_enabled", True))
+    # Agentic RAG requires reranker — force enable when agent is on
+    use_reranker = req.use_reranker if req.use_reranker is not None else True
+    if agent_enabled:
+        use_reranker = True
     return {
         "top_k": req.top_k or col_config.get("top_k", services.config.rag.top_k),
         "rerank_top_k": req.rerank_top_k or col_config.get("rerank_top_k", services.config.rag.rerank_top_k),
-        "agent_enabled": req.use_agent and col_config.get("agent_enabled", col_config.get("self_rag_enabled", True)),
+        "agent_enabled": agent_enabled,
         "search_mode": req.search_mode or col_config.get("search_mode", "dense"),
         "min_score": req.min_score if req.min_score is not None else 0.0,
-        "use_reranker": req.use_reranker if req.use_reranker is not None else True,
+        "use_reranker": use_reranker,
         "max_iterations": req.max_iterations if req.max_iterations is not None else col_config.get("agent_max_iterations", col_config.get("self_rag_max_iterations", 3)),
     }
 
@@ -77,60 +83,6 @@ def _resolve_llm(req: QueryRequest) -> tuple:
     return services.llm, provider_info, req.temperature
 
 
-def _do_parent_child_retrieve(
-    question: str, target_collections: list[str], top_k: int,
-    embedding_overrides: dict, min_score: float, llm, reranker,
-):
-    """Parent-child retrieval: search children, return parents. Returns (context, sources)."""
-    results = []
-    for col in target_collections:
-        chunks, _ = retrieve_parent_child(
-            question, col, top_k, embedding=embedding_overrides.get(col), min_score=min_score,
-        )
-        for c in chunks:
-            c.metadata["collection"] = col
-        results.extend(chunks)
-
-    # Deduplicate
-    seen: set[str] = set()
-    unique = [r for r in results if r.text not in seen and not seen.add(r.text)]
-    results = sorted(unique, key=lambda x: x.score, reverse=True)[:top_k]
-
-    # Rerank
-    if reranker and results:
-        results = reranker.rerank(question, results)
-
-    context = build_context(results)
-    sources = [{"text": c.text, "score": c.score, "metadata": c.metadata} for c in results]
-    return context, sources
-
-
-def _do_standard_retrieve(
-    question: str, collection: str, target_collections: list[str],
-    top_k: int, embedding_overrides: dict, col_embedding,
-    search_mode: str, min_score: float, llm, reranker,
-):
-    """Standard dense/hybrid retrieval. Returns (context, sources)."""
-    if len(target_collections) > 1:
-        chunks = multi_collection_retrieve(
-            services.retriever, question, target_collections,
-            top_k=top_k, embedding_overrides=embedding_overrides,
-            search_mode=search_mode, min_score=min_score,
-        )
-    else:
-        chunks = services.retriever.retrieve(
-            query=question, collection=collection, top_k=top_k,
-            embedding_override=col_embedding, search_mode=search_mode, min_score=min_score,
-        )
-
-    if reranker and chunks:
-        chunks = reranker.rerank(question, chunks)
-
-    context = build_context(chunks)
-    sources = [{"text": c.text, "score": c.score, "metadata": c.metadata} for c in chunks]
-    return context, sources
-
-
 @router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest):
     try:
@@ -154,10 +106,15 @@ def query(req: QueryRequest):
         reranker = services.reranker if (params["use_reranker"] and services.reranker and services.reranker.provider) else None
 
         if is_parent_child and not params["agent_enabled"]:
-            context, sources = _do_parent_child_retrieve(
+            chunks = retrieve_parent_child_multi(
                 req.question, target_collections, params["top_k"],
-                embedding_overrides, params["min_score"], llm, reranker,
+                embedding_overrides=embedding_overrides,
+                min_score=params["min_score"],
+                reranker=reranker,
+                rerank_top_k=params["rerank_top_k"],
             )
+            context = build_context(chunks)
+            sources = [{"text": c.text, "score": c.score, "metadata": c.metadata} for c in chunks]
             answer = llm.generate(f"Answer based on context:\n{context}\n\nQuestion: {req.question}", temperature=temperature)
             result = AgentResult(answer=answer, sources=sources, iterations=1, query_used=req.question)
         elif params["agent_enabled"]:
@@ -175,10 +132,16 @@ def query(req: QueryRequest):
             )
             result = agent.run(query=req.question, collections=target_collections, top_k=params["top_k"])
         else:
-            context, sources = _do_standard_retrieve(
-                req.question, req.collection, target_collections, params["top_k"],
-                embedding_overrides, col_embedding, params["search_mode"], params["min_score"], llm, reranker,
+            chunks = retrieve_standard(
+                req.question, target_collections, params["top_k"],
+                embedding_overrides=embedding_overrides,
+                search_mode=params["search_mode"],
+                min_score=params["min_score"],
+                reranker=reranker,
+                rerank_top_k=params["rerank_top_k"],
             )
+            context = build_context(chunks)
+            sources = [{"text": c.text, "score": c.score, "metadata": c.metadata} for c in chunks]
             answer = llm.generate(f"Answer based on context:\n{context}\n\nQuestion: {req.question}", temperature=temperature)
             result = AgentResult(answer=answer, sources=sources, iterations=1, query_used=req.question)
 
@@ -218,10 +181,15 @@ async def query_stream(req: QueryRequest):
             reranker = services.reranker if (params["use_reranker"] and services.reranker and services.reranker.provider) else None
 
             if is_parent_child and not params["agent_enabled"]:
-                context, sources = _do_parent_child_retrieve(
+                chunks = retrieve_parent_child_multi(
                     req.question, target_collections, params["top_k"],
-                    embedding_overrides, params["min_score"], llm, reranker,
+                    embedding_overrides=embedding_overrides,
+                    min_score=params["min_score"],
+                    reranker=reranker,
+                    rerank_top_k=params["rerank_top_k"],
                 )
+                context = build_context(chunks)
+                sources = [{"text": c.text, "score": c.score, "metadata": c.metadata} for c in chunks]
                 meta = {
                     "type": "meta", "sources": sources, "iterations": 1,
                     "query_used": req.question, "mode": "parent-child", "agent_active": False,
@@ -272,10 +240,16 @@ async def query_stream(req: QueryRequest):
                         _save_history(req.question, "".join(answer_parts), req.collection, result.sources)
 
             else:
-                context, sources = _do_standard_retrieve(
-                    req.question, req.collection, target_collections, params["top_k"],
-                    embedding_overrides, col_embedding, params["search_mode"], params["min_score"], llm, reranker,
+                chunks = retrieve_standard(
+                    req.question, target_collections, params["top_k"],
+                    embedding_overrides=embedding_overrides,
+                    search_mode=params["search_mode"],
+                    min_score=params["min_score"],
+                    reranker=reranker,
+                    rerank_top_k=params["rerank_top_k"],
                 )
+                context = build_context(chunks)
+                sources = [{"text": c.text, "score": c.score, "metadata": c.metadata} for c in chunks]
                 meta = {
                     "type": "meta", "sources": sources, "iterations": 1,
                     "query_used": req.question, "mode": "standard", "agent_active": False,

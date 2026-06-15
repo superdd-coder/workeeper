@@ -24,9 +24,10 @@ def test_recall_search_request_defaults():
     req = RecallSearchRequest(query="test query")
     assert req.query == "test query"
     assert req.collections == ["default"]
-    assert req.search_mode == "dense"
-    assert req.top_k == 10
-    assert req.rerank_top_k == 5
+    assert req.search_mode is None  # falls back to collection config → global
+    assert req.top_k is None  # falls back to collection config → global
+    assert req.rerank_top_k is None  # falls back to collection config → global
+    assert req.use_reranker is None  # falls back to True (like chat)
     assert req.use_agent is False
 
 
@@ -78,7 +79,7 @@ def test_recall_benchmark_request_defaults():
 
     req = RecallBenchmarkRequest(queries=["q1", "q2"])
     assert req.collections == ["default"]
-    assert req.top_k == 10
+    assert req.top_k is None  # falls back to collection config → global
     assert req.use_agent is False
     assert len(req.queries) == 2
 
@@ -110,6 +111,7 @@ def test_recall_params_normal_collection():
         mock_svc.db.get_collection_config.return_value = {
             "chunk_mode": "normal",
             "search_mode": "dense",
+            "top_k": 10,
         }
         mock_svc.reranker = MagicMock()
         resp = client.get("/api/recall/params/default")
@@ -165,6 +167,7 @@ def test_recall_search_normal_mode():
         mock_svc.db.get_collection_config.return_value = {
             "chunk_mode": "normal",
             "search_mode": "dense",
+            "top_k": 10,
         }
         mock_svc.db.get_vector_size.return_value = 512
         mock_svc.config.embedding = EmbeddingConfig(providers=[
@@ -229,7 +232,7 @@ def test_recall_search_normal_mode_with_reranker():
 
         resp = client.post(
             "/api/recall/search",
-            json={"query": "test", "collections": ["default"], "top_k": 2, "use_reranker": True},
+            json={"query": "test", "collections": ["default"], "top_k": 2, "use_reranker": True, "rerank_top_k": 2},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -282,6 +285,9 @@ def test_recall_search_agentic_mode():
         assert len(data["results"]) == 1
         assert data["results"][0]["text"] == "src1"
         mock_agent.run.assert_called_once()
+        # Verify rerank_top_k and max_iterations were passed to AgenticRAG
+        call_args, call_kwargs = mock_agent.run.call_args
+        assert call_kwargs.get("top_k") == 5
 
 
 # ── Recall search: multi-collection ────────────────────────
@@ -305,6 +311,7 @@ def test_recall_search_multi_collection():
         mock_svc.db.collection_exists.return_value = True
         mock_svc.db.get_collection_config.return_value = {
             "chunk_mode": "normal",
+            "top_k": 10,
         }
         mock_svc.db.get_vector_size.return_value = 512
         mock_svc.config.embedding = EmbeddingConfig(provider="local", model="test", dimensions=512)
@@ -342,7 +349,7 @@ def test_recall_search_includes_timing():
          patch("src.services.services", mock_svc), \
          patch("src.rag.collection_utils.create_embedding_provider", return_value=mock_embedding):
         mock_svc.db.collection_exists.return_value = True
-        mock_svc.db.get_collection_config.return_value = {"chunk_mode": "normal"}
+        mock_svc.db.get_collection_config.return_value = {"chunk_mode": "normal", "top_k": 10}
         mock_svc.db.get_vector_size.return_value = 512
         mock_svc.config.embedding = EmbeddingConfig(provider="local", model="test", dimensions=512)
         mock_svc.retriever.retrieve.return_value = []
@@ -403,7 +410,7 @@ def test_recall_benchmark_basic():
          patch("src.services.services", mock_svc), \
          patch("src.rag.collection_utils.create_embedding_provider", return_value=mock_embedding):
         mock_svc.db.collection_exists.return_value = True
-        mock_svc.db.get_collection_config.return_value = {"chunk_mode": "normal"}
+        mock_svc.db.get_collection_config.return_value = {"chunk_mode": "normal", "top_k": 10}
         mock_svc.db.get_vector_size.return_value = 512
         mock_svc.config.embedding = EmbeddingConfig(provider="local", model="test", dimensions=512)
         mock_svc.retriever.retrieve.return_value = mock_chunks

@@ -28,6 +28,29 @@ Open [http://localhost:18900](http://localhost:18900). On first launch:
 2. Go to **Settings** → add an **LLM provider** (any OpenAI-compatible API)
 3. Add an **Embedding provider** and create a Project Database
 
+### Updating
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Docker rebuilds the image with the latest code while preserving your `data/` directory (database, config, history).
+
+### OneShot Setting with DashScope API
+
+If you use [DashScope (阿里云百炼)](https://bailian.console.aliyun.com/), you can configure all providers — LLM, Embedding, Reranker, File Transcription, Realtime Transcription — in one step. Go to **Settings** → **LLM Providers** tab → click **OneShot Setting (DashScope API)**, enter your DashScope API Key, and each provider is created with sensible defaults:
+
+| Service | Default Model |
+|---------|---------------|
+| LLM | deepseek-v4-flash |
+| Embedding | text-embedding-v4 |
+| Reranker | qwen3-rerank |
+| File Transcription | fun-asr |
+| Realtime Transcription | fun-asr-realtime |
+
+You can override any model name in the dialog before applying. After setup, adjust individual provider settings or switch defaults as needed.
+
 ## How It Works
 
 Workeeper connects two worlds — meetings and documents — into a unified project memory.

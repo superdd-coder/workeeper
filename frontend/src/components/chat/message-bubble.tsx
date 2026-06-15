@@ -4,14 +4,16 @@ import { Bot, User } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { SourcesCard } from "./sources-card"
-import type { Message } from "@/stores/app-store"
+import type { Message, Source } from "@/stores/app-store"
 import { cn } from "@/lib/utils"
 
 interface MessageBubbleProps {
   message: Message
+  onSelectSource?: (source: Source) => void
+  selectedSourceId?: string | null
 }
 
-export const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message, onSelectSource, selectedSourceId }: MessageBubbleProps) {
   const isUser = message.role === "user"
 
   return (
@@ -43,7 +45,11 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
         </div>
 
         {!isUser && message.sources && message.sources.length > 0 && (
-          <SourcesCard sources={message.sources} />
+          <SourcesCard
+            sources={message.sources}
+            onSelectSource={onSelectSource}
+            selectedSourceId={selectedSourceId}
+          />
         )}
       </div>
 

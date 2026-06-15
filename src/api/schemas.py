@@ -119,13 +119,14 @@ class ConfigUpdateRequest(BaseModel):
 class RecallSearchRequest(BaseModel):
     query: str
     collections: list[str] = ["default"]
-    search_mode: str = "dense"  # dense / hybrid
-    top_k: int = 10
-    rerank_top_k: int = 5
-    use_reranker: bool = False
+    search_mode: str | None = None  # dense / hybrid — None falls back to collection config → global
+    top_k: int | None = None  # None falls back to collection config → global config
+    rerank_top_k: int | None = None  # None falls back to collection config → global config
+    use_reranker: bool | None = None  # None falls back to True (matching chat behavior)
     use_agent: bool = False
     min_score: float = 0.0  # similarity threshold
     rerank_provider_id: str | None = None  # temporary rerank provider override
+    max_iterations: int | None = None  # per-query override for agentic iterations
 
 
 class RecallResult(BaseModel):
@@ -152,7 +153,7 @@ class RecallSearchResponse(BaseModel):
 class RecallBenchmarkRequest(BaseModel):
     collections: list[str] = ["default"]
     queries: list[str]
-    top_k: int = 10
+    top_k: int | None = None
     use_agent: bool = False
     min_score: float | None = None  # relevance threshold for benchmark metrics
 
@@ -177,9 +178,9 @@ class EvalTestCase(BaseModel):
 
 class EvalRequest(BaseModel):
     collection: str
-    top_k: int = 10
-    search_mode: str = "dense"
-    use_reranker: bool = False
-    rerank_top_k: int = 5
+    top_k: int | None = None
+    search_mode: str | None = None
+    use_reranker: bool | None = None
+    rerank_top_k: int | None = None
     min_score: float = 0.0  # similarity threshold passed through to retrieval
     rerank_provider_id: str | None = None  # temporary rerank provider override

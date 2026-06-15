@@ -23,8 +23,12 @@ from src.api.schemas import (
     RecallSearchRequest,
     RecallSearchResponse,
 )
-from src.rag.collection_utils import get_collection_embedding, get_collection_reranker, get_embedding_overrides, retrieve_parent_child
-from src.rag.retriever import RetrievedChunk, multi_collection_retrieve
+from src.rag.collection_utils import (
+    get_embedding_overrides,
+    retrieve_standard,
+    retrieve_parent_child_multi,
+)
+from src.rag.retriever import RetrievedChunk
 from src.services import services
 
 logger = logging.getLogger(__name__)
@@ -53,7 +57,13 @@ def _hydrate_recall_result(chunk: RetrievedChunk, *, collection: str, id: str = 
 
 
 def _resolve_reranker(rerank_provider_id: str | None = None):
-    """Resolve a reranker provider: temporary override by ID, or global default."""
+    """Resolve a reranker instance: temporary override by ID, or global default.
+
+    NOTE: The returned Reranker instance carries its own default top_k,
+    but the actual top_k used at rerank time comes from params["rerank_top_k"]
+    passed to reranker.rerank(..., top_k=...).  The instance default is only
+    a fallback; the call-site always provides the resolved value.
+    """
     from src.providers.reranker import create_reranker_provider
     from src.rag.reranker import Reranker
 
@@ -65,129 +75,42 @@ def _resolve_reranker(rerank_provider_id: str | None = None):
             provider = create_reranker_provider(provider_cfg)
             if provider:
                 top_k = provider_cfg.top_k if provider_cfg.top_k > 0 else services.config.rag.rerank_top_k
-                logger.info("Using reranker from request: provider=%s top_k=%d", provider_cfg.name, top_k)
+                logger.info("Using reranker from request: provider=%s", provider_cfg.name)
                 return Reranker(provider=provider, top_k=top_k)
 
     # Fall back to global default
     if services.reranker and services.reranker.provider:
-        logger.info("Using global reranker: top_k=%d", services.reranker.top_k)
+        logger.info("Using global reranker: provider=%s",
+                     getattr(services.reranker.provider, '__class__', type(services.reranker.provider)).__name__)
         return services.reranker
-    logger.warning("No reranker configured — rerank skipped")
+    logger.warning(
+        "No reranker configured — rerank skipped. "
+        "reranker=%s, reranker.provider=%s, config.rerank.providers=%d",
+        services.reranker, getattr(services.reranker, 'provider', 'N/A'),
+        len(services.config.rerank.providers) if services.config else 0,
+    )
     return None
 
 
-def _do_dense_search(
-    query: str, collections: list[str], top_k: int, min_score: float = 0.0,
-) -> list[RetrievedChunk]:
-    try:
-        if len(collections) == 1:
-            col_config = services.db.get_collection_config(collections[0])
-            emb = get_collection_embedding(col_config, collections[0])
-            if not emb:
-                logger.error("No embedding provider available for collection '%s'", collections[0])
-                return []
-            chunks = services.retriever.retrieve(query, collection=collections[0], top_k=top_k, embedding_override=emb, min_score=min_score)
-            for c in chunks:
-                c.metadata["collection"] = collections[0]
-        else:
-            chunks = multi_collection_retrieve(
-                services.retriever, query, collections, top_k=top_k,
-                embedding_overrides=get_embedding_overrides(collections), min_score=min_score,
-            )
-        return chunks
-    except Exception as e:
-        logger.error("Dense search failed: %s", e)
-        return []
+def _resolve_recall_params(req: RecallSearchRequest, col_config: dict) -> dict:
+    """Resolve recall parameters with 3-level fallback: request → collection config → global config.
 
-
-def _do_hybrid_search(
-    query: str, collections: list[str], top_k: int, min_score: float = 0.0,
-) -> list[RetrievedChunk]:
-    from src.rag.sparse_encoder import SparseEncoder
-
-    try:
-        sparse_encoder = SparseEncoder()
-        sample_texts: list[str] = []
-        for col in collections:
-            try:
-                col_cfg = services.db.get_collection_config(col)
-                emb = get_collection_embedding(col_cfg, col)
-                if not emb:
-                    continue
-                chunks = services.retriever.retrieve(query, collection=col, top_k=100, embedding_override=emb)
-                sample_texts.extend(c.text for c in chunks)
-            except Exception:
-                continue
-
-        sparse_vector = None
-        if sample_texts:
-            sparse_encoder.build_vocab(sample_texts)
-            sparse_vector = sparse_encoder.encode_query(query)
-
-        all_chunks: list[RetrievedChunk] = []
-        for col in collections:
-            col_cfg = services.db.get_collection_config(col)
-            emb = get_collection_embedding(col_cfg, col)
-            if not emb:
-                continue
-            query_vector = emb.embed_query(query)
-            try:
-                results = services.db.hybrid_search(
-                    collection=col, query_vector=query_vector,
-                    sparse_vector=sparse_vector, top_k=top_k,
-                )
-                for r in results:
-                    all_chunks.append(RetrievedChunk(
-                        text=r["payload"].get("text", ""),
-                        score=r["score"],
-                        metadata={k: v for k, v in r["payload"].items() if k != "text"} | {"collection": col, "id": r["id"]},
-                    ))
-            except Exception:
-                chunks = services.retriever.retrieve(query, collection=col, top_k=top_k, embedding_override=emb)
-                for c in chunks:
-                    c.metadata["collection"] = col
-                all_chunks.extend(chunks)
-
-        seen: set[str] = set()
-        unique = [c for c in all_chunks if c.text not in seen and not seen.add(c.text)]
-        if min_score > 0:
-            unique = [c for c in unique if c.score >= min_score]
-        return unique[:top_k]
-    except Exception as e:
-        logger.error("Hybrid search failed: %s", e)
-        return []
-
-
-def _do_parent_child_search(
-    query: str, collections: list[str], top_k: int, min_score: float = 0.0,
-) -> tuple[list[RetrievedChunk], list[dict]]:
-    """Parent-child retrieval across multiple collections."""
-    all_parent_chunks: list[RetrievedChunk] = []
-    all_child_groups: dict[str, list[dict]] = {}
-
-    try:
-        for col in collections:
-            col_config = services.db.get_collection_config(col)
-            emb = get_collection_embedding(col_config, col)
-            if not emb:
-                continue
-            chunks, groups = retrieve_parent_child(query, col, top_k, embedding=emb, min_score=min_score)
-            for c in chunks:
-                c.metadata["collection"] = col
-            all_parent_chunks.extend(chunks)
-            for g in groups:
-                pid = g["parent_id"]
-                if pid not in all_child_groups:
-                    all_child_groups[pid] = []
-                all_child_groups[pid].extend(g["children"])
-
-        all_parent_chunks.sort(key=lambda x: x.score, reverse=True)
-        return all_parent_chunks[:top_k], [
-            {"parent_id": pid, "children": children} for pid, children in all_child_groups.items()
-        ]
-    except Exception as e:
-        logger.error("Parent-child search failed: %s", e)
-        return [], []
+    Mirrors chat's _resolve_params so recall evaluates the same pipeline chat uses.
+    """
+    agent_enabled = req.use_agent and col_config.get("agent_enabled", col_config.get("self_rag_enabled", True))
+    # Agentic RAG requires reranker — force enable when agent is on
+    use_reranker = req.use_reranker if req.use_reranker is not None else True
+    if agent_enabled:
+        use_reranker = True
+    return {
+        "top_k": req.top_k or col_config.get("top_k", services.config.rag.top_k),
+        "rerank_top_k": req.rerank_top_k or col_config.get("rerank_top_k", services.config.rag.rerank_top_k),
+        "agent_enabled": agent_enabled,
+        "search_mode": req.search_mode or col_config.get("search_mode", "dense"),
+        "min_score": req.min_score if req.min_score is not None else 0.0,
+        "use_reranker": use_reranker,
+        "max_iterations": req.max_iterations if req.max_iterations is not None else col_config.get("agent_max_iterations", col_config.get("self_rag_max_iterations", 3)),
+    }
 
 
 def _compute_metrics(results_list: list[dict], k: int = 5) -> dict:
@@ -292,19 +215,25 @@ def recall_search(req: RecallSearchRequest):
     if not valid_collections:
         return RecallSearchResponse(results=[], time_ms=0, total=0, query_used=req.query)
 
-    if req.use_agent:
-        embedding_overrides = get_embedding_overrides(valid_collections)
-        col_config0 = services.db.get_collection_config(valid_collections[0])
-        search_mode = req.search_mode or col_config0.get("search_mode", "dense")
+    col_config = services.db.get_collection_config(valid_collections[0])
+    params = _resolve_recall_params(req, col_config)
+    embedding_overrides = get_embedding_overrides(valid_collections)
+
+    # ── Agentic branch ─────────────────────────────────────────────────
+    if params["agent_enabled"]:
         from src.rag.agent import AgenticRAG
         reranker = _resolve_reranker(req.rerank_provider_id)
         agent = AgenticRAG(
             llm=services.llm, retriever=services.retriever,
             reranker=reranker if reranker and reranker.provider else None,
-            embedding_overrides=embedding_overrides, search_mode=search_mode,
-            min_score=req.min_score, db=services.db,
+            rerank_top_k=params["rerank_top_k"],
+            max_iterations=params["max_iterations"],
+            embedding_overrides=embedding_overrides,
+            search_mode=params["search_mode"],
+            min_score=params["min_score"],
+            db=services.db,
         )
-        result = agent.run(query=req.query, collections=valid_collections, top_k=req.top_k)
+        result = agent.run(query=req.query, collections=valid_collections, top_k=params["top_k"])
         elapsed = int((time.time() - t0) * 1000)
         results = [
             RecallResult(
@@ -321,8 +250,10 @@ def recall_search(req: RecallSearchRequest):
             query_used=result.query_used or req.query, agent_iterations=result.iterations,
         )
 
-    col_config = services.db.get_collection_config(valid_collections[0])
-    search_mode = req.search_mode or col_config.get("search_mode", "dense")
+    # ── Non-agentic branch ─────────────────────────────────────────────
+    reranker = None
+    if params["use_reranker"]:
+        reranker = _resolve_reranker(req.rerank_provider_id)
 
     pc_collections = [c for c in valid_collections if services.db.get_collection_config(c).get("chunk_mode") == "parent_child"]
     normal_collections = [c for c in valid_collections if c not in pc_collections]
@@ -330,28 +261,38 @@ def recall_search(req: RecallSearchRequest):
     child_groups_map: dict[str, list[dict]] = {}
     chunks: list[RetrievedChunk] = []
 
+    # Parent-child collections (defer rerank to after merge)
     if pc_collections:
-        pc_chunks, child_groups_list = _do_parent_child_search(req.query, pc_collections, req.top_k, min_score=req.min_score)
+        pc_chunks, child_groups_list = retrieve_parent_child_multi(
+            req.query, pc_collections, params["top_k"],
+            embedding_overrides=embedding_overrides,
+            min_score=params["min_score"],
+            reranker=None,  # defer to post-merge rerank
+            return_child_groups=True,
+        )
         chunks.extend(pc_chunks)
         for group in child_groups_list:
             child_groups_map[group["parent_id"]] = group["children"]
 
+    # Normal collections (defer rerank to after merge)
     if normal_collections:
-        if search_mode == "hybrid":
-            chunks.extend(_do_hybrid_search(req.query, normal_collections, req.top_k, min_score=req.min_score))
-        else:
-            chunks.extend(_do_dense_search(req.query, normal_collections, req.top_k, min_score=req.min_score))
+        chunks.extend(retrieve_standard(
+            req.query, normal_collections, params["top_k"],
+            embedding_overrides=embedding_overrides,
+            search_mode=params["search_mode"],
+            min_score=params["min_score"],
+            reranker=None,  # defer to post-merge rerank
+        ))
 
+    # Post-merge: sort, truncate, rerank
     chunks.sort(key=lambda c: c.score, reverse=True)
-    chunks = chunks[:req.top_k]
+    chunks = chunks[:params["top_k"]]
 
-    if req.use_reranker and chunks:
-        reranker = _resolve_reranker(req.rerank_provider_id)
-        if reranker:
-            try:
-                chunks = reranker.rerank(req.query, chunks, top_k=req.rerank_top_k)
-            except Exception as e:
-                logger.warning("Reranker failed: %s", e)
+    if reranker and chunks:
+        try:
+            chunks = reranker.rerank(req.query, chunks, top_k=params["rerank_top_k"])
+        except Exception as e:
+            logger.warning("Reranker failed: %s", e)
 
     elapsed = int((time.time() - t0) * 1000)
     results = []
@@ -382,7 +323,7 @@ def recall_benchmark(req: RecallBenchmarkRequest):
         })
 
     n = len(req.queries) or 1
-    metrics = _compute_metrics(per_query_results, k=req.top_k)
+    metrics = _compute_metrics(per_query_results, k=req.top_k if req.top_k else 10)
     return BenchmarkResult(
         total_queries=len(req.queries), avg_time_ms=total_time / n,
         results=per_query_results, metrics=metrics,
