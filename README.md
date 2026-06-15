@@ -142,6 +142,51 @@ API keys are stored locally in `data/config.yaml` (gitignored, never committed).
 
 `GET /health → {"status": "ok"}`
 
+## MCP Server
+
+Workeeper ships with a built-in [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes the full RAG pipeline as tools for AI coding agents. Use it with Claude Code, Cursor, or any MCP-compatible client to query your knowledge bases directly from your IDE.
+
+### Quick Setup (Claude Code)
+
+Add to your Claude Code MCP settings (`~/.claude/settings.json` or project-level `.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "workeeper": {
+      "command": "python",
+      "args": ["-m", "src.mcp.server"],
+      "cwd": "/path/to/workeeper"
+    }
+  }
+}
+```
+
+The MCP server uses **stdio** transport — Claude Code launches it as a subprocess and communicates via stdin/stdout. No port needed.
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| **`list_collections`** | List all knowledge bases with chunk counts |
+| **`create_collection`** | Create a new collection (sensible defaults) |
+| **`get_collection_config`** | Get full collection configuration |
+| **`update_collection_config`** | Update collection settings (partial update) |
+| **`delete_collection`** | Delete a collection and all its documents |
+| **`list_documents`** | List documents in a collection |
+| **`upload_document`** | Upload a document for async indexing |
+| **`upload_folder`** | Batch-import documents from a server directory |
+| **`delete_document`** | Remove a document and its chunks |
+| **`get_task_status`** | Check async task progress |
+| **`rag_query`** | Ask a question — Agentic RAG with source citations |
+| **`search_chunks`** | Raw chunk retrieval with relevance scores |
+| **`get_query_history`** | Retrieve past query history |
+| **`get_collection_summary`** | LLM-generated collection overview |
+| **`get_project_description`** | Short description of a collection |
+| **`get_doc_summary`** | Structured summary of a document |
+| **`get_conflicts`** | Detect contradictions across documents |
+| **`trigger_consolidate`** | Rebuild collection-level summaries |
+
 ## Environment Variables
 
 All optional. Copy `.env.template` to `.env`:

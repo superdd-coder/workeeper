@@ -142,6 +142,51 @@ API 密钥存储在 `data/config.yaml`（gitignored，不会提交）。
 
 `GET /health → {"status": "ok"}`
 
+## MCP 服务
+
+Workeeper 内置 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 服务器，将完整的 RAG 管道以工具形式暴露给 AI 编程助手。配合 Claude Code、Cursor 或任何兼容 MCP 的客户端使用，可直接在 IDE 中查询知识库。
+
+### 快速配置 (Claude Code)
+
+将以下内容添加到 Claude Code 的 MCP 设置中（`~/.claude/settings.json` 或项目级 `.claude/settings.json`）：
+
+```json
+{
+  "mcpServers": {
+    "workeeper": {
+      "command": "python",
+      "args": ["-m", "src.mcp.server"],
+      "cwd": "/path/to/workeeper"
+    }
+  }
+}
+```
+
+MCP 服务使用 **stdio** 传输 — Claude Code 以子进程方式启动，通过 stdin/stdout 通信，无需端口。
+
+### 可用工具
+
+| 工具 | 描述 |
+|------|-------------|
+| **`list_collections`** | 列出所有知识库及其文档片段数 |
+| **`create_collection`** | 创建新集合（合理默认值） |
+| **`get_collection_config`** | 获取集合完整配置 |
+| **`update_collection_config`** | 更新集合配置（部分更新） |
+| **`delete_collection`** | 删除集合及其所有文档 |
+| **`list_documents`** | 列出集合中的文档 |
+| **`upload_document`** | 上传文档进行异步索引 |
+| **`upload_folder`** | 从服务器目录批量导入文档 |
+| **`delete_document`** | 删除文档及其所有片段 |
+| **`get_task_status`** | 查询异步任务进度 |
+| **`rag_query`** | 提问 — Agentic RAG 生成带来源引用的回答 |
+| **`search_chunks`** | 原始片段检索，带相关性分数 |
+| **`get_query_history`** | 获取历史查询记录 |
+| **`get_collection_summary`** | LLM 生成的集合概览 |
+| **`get_project_description`** | 集合的简短描述 |
+| **`get_doc_summary`** | 文档的结构化摘要 |
+| **`get_conflicts`** | 检测文档间的矛盾信息 |
+| **`trigger_consolidate`** | 重建集合级别的摘要 |
+
 ## 环境变量
 
 全部可选。复制 `.env.template` 为 `.env`：
