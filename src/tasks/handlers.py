@@ -14,7 +14,9 @@ from concurrent.futures import ThreadPoolExecutor
 from src.tasks.task_manager import Task
 from src.services import services
 from src.parsers import parse_file
+from src.parsers.mineru_parser import parse_with_mineru, MINERU_SUPPORTED_EXTENSIONS, MinerUError
 from src.rag.chunker import ParentChildChunker, ParagraphChunker
+from src.rag.markdown_chunker import MarkdownChunker, MarkdownParentChildChunker
 from src.rag.collection_utils import get_collection_embedding
 from src.rag.summary_manager import SummaryManager
 
@@ -316,9 +318,36 @@ async def upload_handler(task: Task, file_path: str, collection: str, filename_p
                 services.db.create_collection(collection, vector_size=services.embedding.dimensions)
 
             update(20, "Parsing file...")
-            doc = parse_file(path)
-            logger.info("[%s] Parse done in %.1fs, content length: %d",
-                        filename_param, time.time() - t_start, len(doc.content or ""))
+
+            # Load collection config first (needed for cloud_parsing flag)
+            config = services.db.get_collection_config(collection)
+
+            # Decide: cloud parsing (MinerU) or local parsing
+            cloud_parsing = config.get("cloud_parsing", False)
+            mineru_cfg = services.config.mineru if hasattr(services.config, "mineru") else None
+            file_ext = path.suffix.lower()
+
+            mineru_ready = cloud_parsing and mineru_cfg and mineru_cfg.enabled and mineru_cfg.api_token and file_ext in MINERU_SUPPORTED_EXTENSIONS
+            logger.info("[%s] Parsing path: cloud_parsing=%s, mineru_enabled=%s, has_token=%s, ext=%s, supported=%s → %s",
+                        filename_param, cloud_parsing,
+                        mineru_cfg.enabled if mineru_cfg else "N/A",
+                        bool(mineru_cfg and mineru_cfg.api_token),
+                        file_ext, file_ext in MINERU_SUPPORTED_EXTENSIONS,
+                        "MinerU" if mineru_ready else "local")
+
+            if mineru_ready:
+                update(20, "Parsing file via MinerU cloud...")
+                try:
+                    doc = parse_with_mineru(path, mineru_cfg)
+                    logger.info("[%s] MinerU parse done in %.1fs, content length: %d",
+                                filename_param, time.time() - t_start, len(doc.content or ""))
+                except (MinerUError, Exception) as e:
+                    logger.warning("[%s] MinerU failed (%s: %s), falling back to local parser", filename_param, type(e).__name__, e)
+                    doc = parse_file(path)
+            else:
+                doc = parse_file(path)
+                logger.info("[%s] Parse done in %.1fs, content length: %d",
+                            filename_param, time.time() - t_start, len(doc.content or ""))
 
             if not doc.content or not doc.content.strip():
                 raise ValueError(
@@ -328,29 +357,52 @@ async def upload_handler(task: Task, file_path: str, collection: str, filename_p
 
             # Save parsed text for preview (same text the chunker uses)
             try:
+                import json as _json
                 parsed_path = path.with_suffix(path.suffix + ".parsed.txt")
                 parsed_path.write_text(doc.content, encoding="utf-8")
+                # Save file_type metadata so the frontend knows how to render
+                meta_path = path.with_suffix(path.suffix + ".parsed.meta.json")
+                meta_path.write_text(_json.dumps({"file_type": doc.file_type}), encoding="utf-8")
             except Exception as e:
                 logger.warning("[%s] Failed to save parsed text: %s", filename_param, e)
 
             update(40, "Chunking...")
-            config = services.db.get_collection_config(collection)
+            use_markdown_chunker = doc.file_type == "markdown"
+
             if config.get("chunk_mode") == "parent_child":
-                chunker = ParentChildChunker(
-                    parent_strategy=config.get("parent_strategy", "paragraph"),
-                    parent_chunk_size=config.get("parent_chunk_size", 1024),
-                    parent_overlap=config.get("parent_chunk_overlap", 128),
-                    parent_buffer_ratio=config.get("buffer_ratio", 0.5),
-                    child_chunk_size=config.get("child_chunk_size", 128),
-                    child_overlap=config.get("child_chunk_overlap", 32),
-                    child_buffer_ratio=config.get("buffer_ratio", 0.5),
-                )
+                if use_markdown_chunker:
+                    chunker = MarkdownParentChildChunker(
+                        parent_strategy=config.get("parent_strategy", "heading"),
+                        parent_chunk_size=config.get("parent_chunk_size", 1024),
+                        parent_overlap=config.get("parent_chunk_overlap", 128),
+                        parent_buffer_ratio=config.get("buffer_ratio", 0.5),
+                        child_chunk_size=config.get("child_chunk_size", 128),
+                        child_overlap=config.get("child_chunk_overlap", 32),
+                        child_buffer_ratio=config.get("buffer_ratio", 0.5),
+                    )
+                else:
+                    chunker = ParentChildChunker(
+                        parent_strategy=config.get("parent_strategy", "paragraph"),
+                        parent_chunk_size=config.get("parent_chunk_size", 1024),
+                        parent_overlap=config.get("parent_chunk_overlap", 128),
+                        parent_buffer_ratio=config.get("buffer_ratio", 0.5),
+                        child_chunk_size=config.get("child_chunk_size", 128),
+                        child_overlap=config.get("child_chunk_overlap", 32),
+                        child_buffer_ratio=config.get("buffer_ratio", 0.5),
+                    )
             else:
-                chunker = ParagraphChunker(
-                    max_tokens=config.get("chunk_size", 512),
-                    buffer_ratio=config.get("buffer_ratio", 0.5),
-                    chunk_overlap=config.get("chunk_overlap", 64),
-                )
+                if use_markdown_chunker:
+                    chunker = MarkdownChunker(
+                        max_tokens=config.get("chunk_size", 512),
+                        buffer_ratio=config.get("buffer_ratio", 0.5),
+                        chunk_overlap=config.get("chunk_overlap", 64),
+                    )
+                else:
+                    chunker = ParagraphChunker(
+                        max_tokens=config.get("chunk_size", 512),
+                        buffer_ratio=config.get("buffer_ratio", 0.5),
+                        chunk_overlap=config.get("chunk_overlap", 64),
+                    )
 
             t_chunk = time.time()
             extra_meta: dict = {"file_type": doc.file_type}

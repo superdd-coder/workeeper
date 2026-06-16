@@ -99,6 +99,9 @@ async def update_config(req: ConfigUpdateRequest):
 
     save_config(config)
     reload_config()
+    # Keep services.config in sync so runtime reads see updated values
+    from src.services import services
+    services.config = get_config()
     return {"message": f"Config section '{req.section}' updated"}
 
 

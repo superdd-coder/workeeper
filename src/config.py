@@ -150,6 +150,19 @@ class TranscriptionConfig(BaseModel):
         )
 
 
+class MinerUConfig(BaseModel):
+    enabled: bool = False
+    api_token: str = ""
+    base_url: str = "https://mineru.net/api/v4"
+    model_version: str = "pipeline"  # pipeline | vlm | MinerU-HTML
+    is_ocr: bool = False
+    enable_formula: bool = True
+    enable_table: bool = True
+    language: str = "ch"  # ch, en, japan, korean, latin, arabic, cyrillic, etc.
+    poll_interval: float = 3.0  # seconds between status polls
+    poll_timeout: float = 300.0  # max wait time in seconds
+
+
 class AppConfig(BaseModel):
     llm: LLMConfig = LLMConfig()
     embedding: EmbeddingConfig = EmbeddingConfig()
@@ -159,6 +172,7 @@ class AppConfig(BaseModel):
     qdrant: QdrantConfig = QdrantConfig()
     server: ServerConfig = ServerConfig()
     transcription: TranscriptionConfig = TranscriptionConfig()
+    mineru: MinerUConfig = MinerUConfig()
 
 
 def _resolve_config_path(path: str | Path | None = None) -> Path:

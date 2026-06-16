@@ -48,6 +48,10 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
   const [enrichingLlmProvider, setEnrichingLlmProvider] = useState("")
   const [enrichingLlmModel, setEnrichingLlmModel] = useState("")
 
+  // Cloud parsing (MinerU)
+  const [cloudParsing, setCloudParsing] = useState(false)
+  const [mineruGloballyEnabled, setMineruGloballyEnabled] = useState(false)
+
   const readyProviders = providers.filter((p) => p.status === "ready" || !p.status)
   const enrichingProvider = enrichingLlmProvider
     ? readyProviders.find((p) => p.id === enrichingLlmProvider)
@@ -67,6 +71,9 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
           const globalCfg = await getConfig()
           const emb = globalCfg.embedding as Record<string, unknown> | undefined
           if (emb?.model) setGlobalEmbModel(String(emb.model))
+          // Check if MinerU is globally enabled
+          const mineru = globalCfg.mineru as Record<string, unknown> | undefined
+          setMineruGloballyEnabled(!!mineru?.enabled)
         } catch { /* ignore */ }
 
         // Fetch embedding providers for selector
@@ -98,6 +105,9 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
         // Enriching LLM config
         setEnrichingLlmProvider(String(cfg.enriching_llm_provider ?? ""))
         setEnrichingLlmModel(String(cfg.enriching_llm_model ?? ""))
+
+        // Cloud parsing
+        setCloudParsing(Boolean(cfg.cloud_parsing ?? false))
       } catch {
         // ignore
       }
@@ -131,6 +141,9 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
       // Enriching LLM config (always send to allow clearing)
       config.enriching_llm_provider = enrichingLlmProvider || null
       config.enriching_llm_model = enrichingLlmModel || null
+
+      // Cloud parsing
+      config.cloud_parsing = cloudParsing
 
       const res = await updateCollectionConfig(collection, config)
       if (res.error) toast.error(res.error)
@@ -357,6 +370,29 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
           </div>
         </CardContent>
       </Card>
+
+      {mineruGloballyEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cloud Parsing (MinerU)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Use MinerU cloud API for document parsing. Produces higher quality Markdown output with better table, formula, and layout preservation.
+              Configure MinerU API token in Settings.
+            </p>
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <input type="checkbox" checked={cloudParsing} onChange={(e) => setCloudParsing(e.target.checked)} className="rounded" />
+              Enable Cloud Parsing for this Collection
+            </label>
+            {cloudParsing && (
+              <p className="text-xs text-muted-foreground">
+                When enabled, uploaded documents will be parsed by MinerU's cloud API and chunked using a Markdown-aware strategy that preserves tables, code blocks, and heading structure.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>

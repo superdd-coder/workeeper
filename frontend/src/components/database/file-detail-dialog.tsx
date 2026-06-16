@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, ChevronRight, ChevronDown, RefreshCw, Locate } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { getFilePreviewUrl, isPreviewable, getDocSummary, setDocSummaryInclude, generateDocSummary, type ChunkDetail, type DocSummary } from "@/api/client"
+import { getFilePreviewUrl, isPreviewable, getDocSummary, setDocSummaryInclude, generateDocSummary, getExtractedText, type ChunkDetail, type DocSummary } from "@/api/client"
 import { toast } from "sonner"
 
 // Module-level: survives component unmount across tab switches
@@ -113,6 +113,10 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set())
   const [docSummary, setDocSummary] = useState<DocSummary | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
+  const [extractedText, setExtractedText] = useState<string | null>(null)
+  const [extractedFormat, setExtractedFormat] = useState<string>("text")
+  const [extractedLoading, setExtractedLoading] = useState(false)
+  const extractedContentRef = useRef<HTMLDivElement>(null)
   const [highlightOffset, setHighlightOffset] = useState<number | undefined>(undefined)
   const [highlightPage, setHighlightPage] = useState<number | undefined>(undefined)
   const [highlightText, setHighlightText] = useState("")
@@ -132,6 +136,8 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
   useEffect(() => {
     setDocSummary(null)
     setPreviewContent(null)
+    setExtractedText(null)
+    setExtractedFormat("text")
     setHighlightOffset(undefined)
     setHighlightPage(undefined)
     setHighlightText("")
@@ -200,7 +206,8 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
     if (chunk.page_number !== undefined) setHighlightPage(chunk.page_number)
     setHighlightText(chunk.text || "")
     setHighlightLength(chunk.text?.length)
-    setActiveTab("source")
+    // Navigate to extracted tab (offsets match chunk positions)
+    setActiveTab("extracted")
   }, [])
 
   // Scroll to highlighted chunk offset when text content loads
@@ -223,6 +230,26 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
       return () => clearTimeout(timer)
     }
   }, [previewContent, highlightOffset, isPdf, source])
+
+  // Scroll to highlighted chunk in extracted tab
+  useEffect(() => {
+    if (highlightOffset === undefined || activeTab !== "extracted") return
+    if (!extractedText) return
+    const attemptScroll = () => {
+      const el = extractedContentRef.current?.querySelector("mark")
+      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); return true }
+      const viewport = extractedContentRef.current?.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null
+      if (viewport) {
+        const mark = viewport.querySelector("mark")
+        if (mark) { mark.scrollIntoView({ behavior: "smooth", block: "center" }); return true }
+      }
+      return false
+    }
+    if (!attemptScroll()) {
+      const timer = setTimeout(attemptScroll, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [extractedText, highlightOffset, activeTab])
 
   // Load preview whenever source changes
   useEffect(() => {
@@ -257,6 +284,23 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
     return () => { cancelled = true }
   }, [source, isPdf])
 
+  // Load extracted text
+  useEffect(() => {
+    if (!source) { setExtractedText(null); return }
+    let cancelled = false
+    setExtractedLoading(true)
+    getExtractedText(source)
+      .then((res) => {
+        if (!cancelled) {
+          setExtractedText(res.text)
+          setExtractedFormat(res.format)
+        }
+      })
+      .catch(() => { if (!cancelled) { setExtractedText(null); setExtractedFormat("text") } })
+      .finally(() => { if (!cancelled) setExtractedLoading(false) })
+    return () => { cancelled = true }
+  }, [source])
+
   // Load doc summary when source or collection changes
   useEffect(() => {
     if (!source || !collection) {
@@ -287,6 +331,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full min-h-0">
               <TabsList variant="line" className="mb-2">
                 <TabsTrigger value="source">Source</TabsTrigger>
+                <TabsTrigger value="extracted">Extracted</TabsTrigger>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
               </TabsList>
 
@@ -333,6 +378,40 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                         ))}
                       </CardContent>
                     </ScrollArea>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="extracted" className="flex-1 overflow-hidden min-h-0">
+                <div className="flex-1 overflow-hidden rounded-lg border border-border h-full">
+                  {extractedLoading ? (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Loading extracted text...
+                    </div>
+                  ) : extractedText !== null ? (
+                    <ScrollArea className="h-full">
+                      <div ref={extractedContentRef}>
+                        <CardContent className="p-4">
+                          {extractedFormat === "markdown" ? (
+                            <div className="prose prose-sm max-w-none dark:prose-invert">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{extractedText}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <HighlightedText
+                              text={extractedText}
+                              highlight={highlightText}
+                              offset={highlightOffset}
+                              chunkLength={highlightLength}
+                            />
+                          )}
+                        </CardContent>
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      <p className="text-sm">No extracted text available.</p>
+                    </div>
                   )}
                 </div>
               </TabsContent>
@@ -394,10 +473,12 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                                 _markGenerating(key)
                                 setRenderTick(k => k + 1)
                                 setDocSummary(null)
+                                setActiveTab("summary")
                                 try {
                                   await generateDocSummary(collection, source)
                                 } catch (err) {
                                   _unmarkGenerating(key)
+                                  setRenderTick(k => k + 1)
                                   toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`)
                                 }
                               }}
@@ -451,11 +532,14 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                               if (!source || !collection) return
                               const key = _genKey(collection, source)
                               _markGenerating(key)
+                              setRenderTick(k => k + 1)
                               setDocSummary(null)
+                              setActiveTab("summary")
                               try {
                                 await generateDocSummary(collection, source)
                               } catch (err) {
                                 _unmarkGenerating(key)
+                                setRenderTick(k => k + 1)
                                 toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`)
                               }
                             }}
@@ -499,6 +583,9 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                               <div className="flex items-center gap-2 mb-1">
                                 <Badge variant="default" className="text-[10px]">Parent #{group.parent.chunk_index}</Badge>
                                 <Badge variant="outline" className="text-[10px]">{group.children.length} children</Badge>
+                                {group.parent.heading_path && (
+                                  <span className="text-[10px] text-muted-foreground truncate">{group.parent.heading_path}</span>
+                                )}
                                 <button
                                   className="ml-auto p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                                   title="Locate in preview"
@@ -565,7 +652,10 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="outline" className="text-[10px]">Chunk #{chunk.chunk_index}</Badge>
-                          {chunk.section_label && (
+                          {chunk.heading_path && (
+                            <span className="text-[10px] text-muted-foreground truncate">{chunk.heading_path}</span>
+                          )}
+                          {!chunk.heading_path && chunk.section_label && (
                             <Badge variant="secondary" className="text-[10px]">{chunk.section_label}</Badge>
                           )}
                           {chunk.context && (

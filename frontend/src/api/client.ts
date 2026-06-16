@@ -143,6 +143,7 @@ export interface ChunkDetail {
   page_number?: number
   slide_number?: number
   section_label?: string
+  heading_path?: string
 }
 
 export const getFileChunks = (collection: string, source: string, limit = 100) =>
@@ -152,6 +153,9 @@ export const getFileChunks = (collection: string, source: string, limit = 100) =
 
 export const getFilePreviewUrl = (source: string) =>
   `/api/documents/preview/${encodeURIComponent(source)}`
+
+export const getExtractedText = (source: string) =>
+  request<{ text: string; format: string }>(`/documents/extracted/${encodeURIComponent(source)}`)
 
 export const isPreviewable = (filename: string) => {
   const ext = filename.split(".").pop()?.toLowerCase() ?? ""

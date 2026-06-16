@@ -48,6 +48,7 @@ _DEFAULT_COLLECTION_CONFIG = {
     "search_mode": "dense",
     "summary_change_counter": 0,
     "summary_consolidate_threshold": 10,
+    "cloud_parsing": False,
 }
 
 # Fields that cannot be changed after collection creation

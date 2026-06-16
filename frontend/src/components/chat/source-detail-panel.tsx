@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, X, ChevronRight, ChevronDown, RefreshCw, Locate } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { getFileChunks, getFilePreviewUrl, isPreviewable, getDocSummary, generateDocSummary, setDocSummaryInclude, type ChunkDetail, type DocSummary } from "@/api/client"
+import { getFileChunks, getFilePreviewUrl, isPreviewable, getDocSummary, generateDocSummary, setDocSummaryInclude, getExtractedText, type ChunkDetail, type DocSummary } from "@/api/client"
 import type { Source } from "@/stores/app-store"
 import { toast } from "sonner"
 
@@ -128,6 +128,10 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set())
   const [docSummary, setDocSummary] = useState<DocSummary | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
+  const [extractedText, setExtractedText] = useState<string | null>(null)
+  const [extractedFormat, setExtractedFormat] = useState<string>("text")
+  const [extractedLoading, setExtractedLoading] = useState(false)
+  const extractedContentRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState("preview")
   const [highlightOffset, setHighlightOffset] = useState<number | undefined>(undefined)
   const [highlightPage, setHighlightPage] = useState<number | undefined>(undefined)
@@ -146,6 +150,8 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
     setPreviewContent(null)
     setChunks([])
     setDocSummary(null)
+    setExtractedText(null)
+    setExtractedFormat("text")
     setExpandedParents(new Set())
     setHighlightOffset(source ? _getHighlightOffset(source) : undefined)
     setHighlightPage(source?.metadata?.page_number as number | undefined)
@@ -192,6 +198,23 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
       .then(text => { if (!cancelled) setPreviewContent(text) })
       .catch(() => { if (!cancelled) setPreviewContent(null) })
       .finally(() => { if (!cancelled) setPreviewLoading(false) })
+    return () => { cancelled = true }
+  }, [sourceName])
+
+  // Load extracted text
+  useEffect(() => {
+    if (!sourceName) { setExtractedText(null); return }
+    let cancelled = false
+    setExtractedLoading(true)
+    getExtractedText(sourceName)
+      .then((res) => {
+        if (!cancelled) {
+          setExtractedText(res.text)
+          setExtractedFormat(res.format)
+        }
+      })
+      .catch(() => { if (!cancelled) { setExtractedText(null); setExtractedFormat("text") } })
+      .finally(() => { if (!cancelled) setExtractedLoading(false) })
     return () => { cancelled = true }
   }, [sourceName])
 
@@ -250,6 +273,26 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
     }
   }, [previewContent, highlightOffset, isPdfFile, sourceName, chunkId])
 
+  // Scroll to highlighted chunk in extracted tab
+  useEffect(() => {
+    if (highlightOffset === undefined || activeTab !== "extracted") return
+    if (!extractedText) return
+    const attemptScroll = () => {
+      const el = extractedContentRef.current?.querySelector("mark")
+      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); return true }
+      const viewport = extractedContentRef.current?.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null
+      if (viewport) {
+        const mark = viewport.querySelector("mark")
+        if (mark) { mark.scrollIntoView({ behavior: "smooth", block: "center" }); return true }
+      }
+      return false
+    }
+    if (!attemptScroll()) {
+      const timer = setTimeout(attemptScroll, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [extractedText, highlightOffset, activeTab])
+
   const isParentChild = chunks.some(c => c.chunk_type === "parent")
 
   const groupedChunks = useMemo(() => {
@@ -285,7 +328,7 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
   const handleLocate = useCallback((offset?: number, pageNumber?: number) => {
     setHighlightOffset(offset)
     if (pageNumber !== undefined) setHighlightPage(pageNumber)
-    setActiveTab("preview")
+    setActiveTab("extracted")
   }, [])
 
   const highlightText = source?.text || ""
@@ -322,6 +365,7 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full min-h-0">
           <TabsList variant="line" className="mb-1 shrink-0">
             <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+            <TabsTrigger value="extracted" className="text-xs">Extracted</TabsTrigger>
             <TabsTrigger value="chunks" className="text-xs">Chunks{chunks.length > 0 ? ` (${chunks.length})` : ""}</TabsTrigger>
             <TabsTrigger value="summary" className="text-xs">Summary</TabsTrigger>
           </TabsList>
@@ -372,6 +416,41 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
                     ))}
                   </CardContent>
                 </ScrollArea>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Extracted Tab */}
+          <TabsContent value="extracted" className="flex-1 overflow-hidden min-h-0">
+            <div className="flex-1 overflow-hidden rounded-lg border border-border h-full">
+              {extractedLoading ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Loading extracted text...
+                </div>
+              ) : extractedText !== null ? (
+                <ScrollArea className="h-full">
+                  <div ref={extractedContentRef}>
+                    <CardContent className="p-3">
+                      {extractedFormat === "markdown" ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{extractedText}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <HighlightedText
+                          text={extractedText}
+                          highlight={highlightText}
+                          offset={highlightOffset}
+                          chunkLength={highlightText.length}
+                        />
+                      )}
+                    </CardContent>
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <p className="text-sm">No extracted text available.</p>
+                </div>
               )}
             </div>
           </TabsContent>

@@ -332,6 +332,51 @@ def preview_file(filename: str):
     )
 
 
+@router.get("/documents/extracted/{filename:path}")
+def get_extracted_text(filename: str):
+    """Return parsed/extracted text as JSON with format metadata.
+
+    Response: { "text": "...", "format": "markdown" | "text" }
+    """
+    filename = Path(filename).name
+    file_path = UPLOAD_DIR / filename
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Try to load saved file_type metadata
+    meta_path = file_path.with_suffix(file_path.suffix + ".parsed.meta.json")
+    fmt = "text"
+    if meta_path.is_file():
+        try:
+            import json as _json
+            meta = _json.loads(meta_path.read_text(encoding="utf-8"))
+            fmt = meta.get("file_type", "text")
+        except Exception:
+            pass
+
+    # Try parsed text first
+    parsed_path = file_path.with_suffix(file_path.suffix + ".parsed.txt")
+    if parsed_path.is_file():
+        text = parsed_path.read_text(encoding="utf-8")
+        return {"text": text, "format": fmt}
+
+    # Fallback: re-parse
+    suffix = file_path.suffix.lower()
+    from src.parsers import PARSERS
+
+    parser = PARSERS.get(suffix)
+    if parser is None:
+        raise HTTPException(status_code=400, detail=f"Unsupported file format: {suffix}")
+
+    try:
+        doc = parser.parse(file_path)
+        text = doc.content or "(No text content extracted)"
+        fmt = doc.file_type
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse file: {e}")
+
+    return {"text": text, "format": fmt}
+
 @router.get("/documents/{collection}")
 def list_documents(collection: str):
     if not services.db.collection_exists(collection):
@@ -424,6 +469,7 @@ def get_file_chunks(collection: str, source: str, limit: int = 100, offset: int 
             "page_number": p["payload"].get("page_number"),
             "slide_number": p["payload"].get("slide_number"),
             "section_label": p["payload"].get("section_label"),
+            "heading_path": p["payload"].get("heading_path"),
         }
         for p in all_points
     ]

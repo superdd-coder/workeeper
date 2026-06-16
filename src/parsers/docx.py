@@ -1,83 +1,64 @@
+"""DOCX parser using mammoth for Markdown output.
+
+Converts .docx files to Markdown via mammoth, preserving formatting
+(bold, italic, lists, headings, tables) that python-docx's para.text drops.
+Output uses file_type="markdown" so it routes to MarkdownChunker.
+"""
+
+from __future__ import annotations
+
+import re
 from pathlib import Path
 
-import docx
-from docx.table import Table as _DocxTable
+import mammoth
 
 from src.parsers.base import DocumentParser, ParsedDocument
 
-_HEADING_LEVELS = {1: "# ", 2: "## ", 3: "### ", 4: "#### ", 5: "##### ", 6: "###### "}
 
+def clean_mammoth_markdown(text: str) -> str:
+    """Clean mammoth's Markdown output.
 
-def _format_table(table: _DocxTable) -> str:
-    """Convert a docx table to a markdown-style string."""
-    rows: list[list[str]] = []
-    for row in table.rows:
-        rows.append([cell.text.strip() for cell in row.cells])
-    if not rows:
-        return ""
+    mammoth produces valid but noisy Markdown: unnecessary backslash escaping,
+    __ for bold instead of **, and Word hidden bookmark anchors.
+    """
+    # 1. Remove Word hidden bookmark anchors (e.g. <a id="_Hlk12345"></a>)
+    text = re.sub(r'<a id="[^"]*"></a>', "", text)
 
-    col_count = max(len(r) for r in rows)
-    # Pad rows to uniform width
-    for r in rows:
-        while len(r) < col_count:
-            r.append("")
+    # 2. Remove unnecessary backslash escaping mammoth adds for punctuation/brackets.
+    #    Do NOT remove \_ (valid Markdown for literal underscore) or \* (literal asterisk).
+    text = re.sub(r"\\([()[\].,:;!\"#&=<>|~`{}\-+])", r"\1", text)
 
-    header = "| " + " | ".join(rows[0]) + " |"
-    sep = "| " + " | ".join("---" for _ in range(col_count)) + " |"
-    body = "\n".join("| " + " | ".join(r) + " |" for r in rows[1:])
-    return "\n".join([header, sep, body])
+    # 3. Convert mammoth's __bold__ to **bold** (only real paired markers, not __ in \_)
+    text = re.sub(r"__(.+?)__", r"**\1**", text)
+
+    # 4. Clean up empty/trailing-whitespace bold markers (e.g. "** " or "** **")
+    text = re.sub(r"\*\*\s+\*\*", "", text)
+
+    return text
 
 
 class DocxParser(DocumentParser):
     def parse(self, path: Path) -> ParsedDocument:
-        doc = docx.Document(str(path))
-        parts: list[str] = []
-        table_idx = 0
+        with open(str(path), "rb") as f:
+            result = mammoth.convert_to_markdown(f)
 
-        for element in doc.element.body:
-            tag = element.tag.split("}")[-1] if "}" in element.tag else element.tag
+        text = clean_mammoth_markdown(result.value)
 
-            if tag == "p":
-                para = docx.text.paragraph.Paragraph(element, doc)
-                text = para.text.strip()
-                if not text:
-                    continue
-                style = para.style.name if para.style else ""
-                if style.startswith("Heading"):
-                    try:
-                        level = int(style.split()[-1])
-                    except (ValueError, IndexError):
-                        level = 1
-                    prefix = _HEADING_LEVELS.get(level, "# ")
-                    parts.append(prefix + text)
-                else:
-                    parts.append(text)
-
-            elif tag == "tbl":
-                if table_idx < len(doc.tables):
-                    md_table = _format_table(doc.tables[table_idx])
-                    if md_table:
-                        parts.append(md_table)
-                    table_idx += 1
-
-        # Build content with position_map tracking paragraph boundaries
+        # Build position_map from heading positions
         position_map: list[dict] = []
-        content_parts: list[str] = []
-        offset = 0
-        for i, part in enumerate(parts):
+        for m in re.finditer(r"^(#{1,6})\s+(.+)$", text, re.MULTILINE):
             position_map.append({
-                "char_offset": offset,
-                "label": f"Paragraph {i + 1}",
+                "char_offset": m.start(),
+                "label": m.group(0).strip(),
                 "type": "section",
-                "paragraph_index": i + 1,
             })
-            content_parts.append(part)
-            offset += len(part) + 2  # +2 for "\n\n" separator
+
+        messages = [str(m) for m in result.messages] if result.messages else []
 
         return ParsedDocument(
-            content="\n\n".join(content_parts),
-            metadata={"paragraphs": len(parts)},
+            content=text,
+            metadata={"format": "markdown", "messages": messages},
             source_path=str(path),
-            file_type="docx",
+            file_type="markdown",
             position_map=position_map,
         )

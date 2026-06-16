@@ -106,6 +106,7 @@ class CollectionConfigUpdateRequest(BaseModel):
     rerank_api_key: str | None = None
     rerank_top_k: int | None = None
     allowed_file_types: list[str] | None = None
+    cloud_parsing: bool | None = None
 
 
 class ConfigUpdateRequest(BaseModel):

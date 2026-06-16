@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Combobox } from "@/components/ui/combobox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Bot, Cpu, ArrowUpDown, Star, Pencil, Trash2, Plug, Loader2, Eye, EyeOff, Mic, Zap, Download, RefreshCw, BookOpen } from "lucide-react"
+import { Plus, Bot, Cpu, ArrowUpDown, Star, Pencil, Trash2, Plug, Loader2, Eye, EyeOff, Mic, Zap, Download, RefreshCw, BookOpen, Cloud } from "lucide-react"
 import { useAppStore } from "@/stores/app-store"
 import {
   getLLMProviders, type LLMProvider,
@@ -444,6 +444,17 @@ export function LLMProviderView() {
   // Local model device
   const [localDevice, setLocalDevice] = useState<string>("cpu")
 
+  // MinerU cloud parsing settings
+  const [mineruEnabled, setMineruEnabled] = useState(false)
+  const [mineruToken, setMineruToken] = useState("")
+  const [mineruModel, setMineruModel] = useState("pipeline")
+  const [mineruOcr, setMineruOcr] = useState(false)
+  const [mineruFormula, setMineruFormula] = useState(true)
+  const [mineruTable, setMineruTable] = useState(true)
+  const [mineruLanguage, setMineruLanguage] = useState("ch")
+  const [showMineruToken, setShowMineruToken] = useState(false)
+  const [savingMineru, setSavingMineru] = useState(false)
+
   // Runtime load states from backend
   const [loadStates, setLoadStates] = useState<Record<string, string>>({})
 
@@ -556,7 +567,19 @@ export function LLMProviderView() {
     fetchFileTransProviders()
     fetchRtTransProviders()
     refreshModelDownloaded()
-    getConfig().then((c) => setLocalDevice(typeof c.transcription?.local_device === "string" ? c.transcription.local_device : "cpu")).catch(() => {})
+    getConfig().then((c) => {
+      setLocalDevice(typeof c.transcription?.local_device === "string" ? c.transcription.local_device : "cpu")
+      // Load MinerU config
+      if (c.mineru) {
+        setMineruEnabled(!!c.mineru.enabled)
+        setMineruToken(typeof c.mineru.api_token === "string" ? c.mineru.api_token : "")
+        setMineruModel(typeof c.mineru.model_version === "string" ? c.mineru.model_version : "pipeline")
+        setMineruOcr(!!c.mineru.is_ocr)
+        setMineruFormula(c.mineru.enable_formula !== false)
+        setMineruTable(c.mineru.enable_table !== false)
+        setMineruLanguage(typeof c.mineru.language === "string" ? c.mineru.language : "ch")
+      }
+    }).catch(() => {})
   }, [])
 
   const handleAdd = () => { setEditingProvider(null); setDialogOpen(true) }
@@ -825,6 +848,178 @@ export function LLMProviderView() {
           <p className="text-sm text-muted-foreground">
             Manage hot word libraries to improve transcription accuracy for domain-specific terms like names, acronyms, and jargon.
           </p>
+        </section>
+
+        {/* ── MinerU Cloud Parsing ── */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+              <Cloud className="h-5 w-5" />MinerU Cloud Parsing
+            </h2>
+          </div>
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Use MinerU's cloud API for high-quality document parsing with better table, formula, and layout preservation.
+                Get your API token at{" "}
+                <a href="https://mineru.net/apiManage/token" target="_blank" rel="noopener noreferrer" className="text-primary underline">mineru.net/apiManage/token</a>.
+                When enabled, activate per-collection in Collection Settings.
+              </p>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-medium">Enable MinerU</span>
+                  <p className="text-xs text-muted-foreground">Toggle cloud parsing globally</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const next = !mineruEnabled
+                    setMineruEnabled(next)
+                    try {
+                      await updateConfig("mineru", {
+                        enabled: next,
+                        api_token: mineruToken,
+                        base_url: "https://mineru.net/api/v4",
+                        model_version: mineruModel,
+                        is_ocr: mineruOcr,
+                        enable_formula: mineruFormula,
+                        enable_table: mineruTable,
+                        language: mineruLanguage,
+                      })
+                      toast.success(next ? "MinerU enabled" : "MinerU disabled")
+                    } catch {
+                      toast.error("Failed to update MinerU setting")
+                      setMineruEnabled(!next)
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mineruEnabled ? "bg-primary" : "bg-input"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mineruEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+
+              <div className={`space-y-4 ${!mineruEnabled ? "opacity-50 pointer-events-none" : ""}`}>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">API Token</label>
+                  <div className="relative">
+                    <Input
+                      type={showMineruToken ? "text" : "password"}
+                      value={mineruToken}
+                      onChange={(e) => setMineruToken(e.target.value)}
+                      placeholder="Enter your MinerU API token"
+                      disabled={!mineruEnabled}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMineruToken(!showMineruToken)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showMineruToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Model Version</label>
+                    <select
+                      value={mineruModel}
+                      onChange={(e) => setMineruModel(e.target.value)}
+                      disabled={!mineruEnabled}
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="pipeline">Pipeline (Default)</option>
+                      <option value="vlm">VLM (Recommended)</option>
+                      <option value="MinerU-HTML">MinerU HTML</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Language</label>
+                    <select
+                      value={mineruLanguage}
+                      onChange={(e) => setMineruLanguage(e.target.value)}
+                      disabled={!mineruEnabled}
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="ch">Chinese + English + Traditional Chinese</option>
+                      <option value="ch_server">Chinese + Japanese (server)</option>
+                      <option value="en">English</option>
+                      <option value="japan">Japanese</option>
+                      <option value="korean">Korean</option>
+                      <option value="chinese_cht">Traditional Chinese</option>
+                      <option value="ta">Tamil</option>
+                      <option value="te">Telugu</option>
+                      <option value="ka">Kannada</option>
+                      <option value="el">Greek</option>
+                      <option value="th">Thai</option>
+                      <option value="latin">Latin (40+ languages)</option>
+                      <option value="arabic">Arabic</option>
+                      <option value="cyrillic">Cyrillic (30+ languages)</option>
+                      <option value="east_slavic">East Slavic (Russian/Ukrainian/Belarusian)</option>
+                      <option value="devanagari">Devanagari (Hindi/Marathi/Nepali)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Parsing Options</label>
+                  <div className="space-y-2">
+                    <label className={`flex items-start gap-2 text-sm ${!mineruEnabled ? "cursor-default" : "cursor-pointer"}`}>
+                      <input type="checkbox" checked={mineruOcr} onChange={(e) => setMineruOcr(e.target.checked)} disabled={!mineruEnabled} className="rounded mt-0.5" />
+                      <div>
+                        <span className="font-medium">Force OCR</span>
+                        <p className="text-xs text-muted-foreground">Force OCR on all pages. When off, MinerU auto-detects whether pages need OCR (scanned/image pages will still be OCR'd automatically).</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-start gap-2 text-sm ${!mineruEnabled ? "cursor-default" : "cursor-pointer"}`}>
+                      <input type="checkbox" checked={mineruFormula} onChange={(e) => setMineruFormula(e.target.checked)} disabled={!mineruEnabled} className="rounded mt-0.5" />
+                      <div>
+                        <span className="font-medium">Formula Recognition</span>
+                        <p className="text-xs text-muted-foreground">Recognize mathematical formulas and convert to LaTeX. Recommended for academic/technical documents.</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-start gap-2 text-sm ${!mineruEnabled ? "cursor-default" : "cursor-pointer"}`}>
+                      <input type="checkbox" checked={mineruTable} onChange={(e) => setMineruTable(e.target.checked)} disabled={!mineruEnabled} className="rounded mt-0.5" />
+                      <div>
+                        <span className="font-medium">Table Recognition</span>
+                        <p className="text-xs text-muted-foreground">Detect and extract tables as structured Markdown. Recommended for documents with tabular data.</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    disabled={savingMineru || !mineruEnabled}
+                    onClick={async () => {
+                      setSavingMineru(true)
+                      try {
+                        await updateConfig("mineru", {
+                          enabled: mineruEnabled,
+                          api_token: mineruToken,
+                          base_url: "https://mineru.net/api/v4",
+                          model_version: mineruModel,
+                          is_ocr: mineruOcr,
+                          enable_formula: mineruFormula,
+                          enable_table: mineruTable,
+                          language: mineruLanguage,
+                        })
+                        toast.success("MinerU settings saved")
+                      } catch {
+                        toast.error("Failed to save MinerU settings")
+                      } finally {
+                        setSavingMineru(false)
+                      }
+                    }}
+                  >
+                    {savingMineru ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                    Save Settings
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
         {/* ── Dialogs ── */}

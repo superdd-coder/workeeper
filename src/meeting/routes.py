@@ -301,10 +301,12 @@ async def upload_notes(meeting_id: str, file: UploadFile = File(...)):
         content = content_bytes.decode("utf-8", errors="replace")
     elif ext == "docx":
         try:
-            import docx
+            import mammoth
+            from src.parsers.docx import clean_mammoth_markdown
 
-            doc = docx.Document(io.BytesIO(content_bytes))
-            content = "\n\n".join(p.text for p in doc.paragraphs)
+            with io.BytesIO(content_bytes) as buf:
+                result = mammoth.convert_to_markdown(buf)
+            content = clean_mammoth_markdown(result.value)
         except Exception:
             content = content_bytes.decode("utf-8", errors="replace")
     else:
