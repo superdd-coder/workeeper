@@ -30,6 +30,7 @@ class AgentState:
     # ── LLM grading output ──────────────────────────────────────────
     current_gap_analysis: str = ""
     is_sufficient: bool = False
+    retained_info: str = ""  # LLM-maintained running summary of confirmed information
 
     # ── Iteration control ───────────────────────────────────────────
     iteration_count: int = 0

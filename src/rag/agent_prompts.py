@@ -1,19 +1,21 @@
 """LLM prompt templates for the Agentic RAG v2 pipeline.
 
 Each prompt has a SYSTEM (cached as prefix) and USER (variable per call) part.
+
+Grade is split into two phases:
+  Part 1: relevance judgment only (cheap, focused)
+  Part 2: retained_info + gap_analysis + is_sufficient (rich reasoning)
 """
 
 # ══════════════════════════════════════════════════════════════════════════
-# Node 2: LLM Grade — evaluate candidate chunks against the original query
+# Node 2a: Grade Part 1 — relevance judgment only
 # ══════════════════════════════════════════════════════════════════════════
 
-GRADE_SYSTEM = """\
-You are a rigorous information evaluator for a RAG (Retrieval-Augmented Generation) system.
+GRADE_PART1_SYSTEM = """\
+You are a rigorous information evaluator for a RAG system.
 
-Your task: evaluate each candidate chunk and determine:
-1. Whether it contains information directly relevant to answering the user's query
-2. Whether the relevant chunks together (combined with any confirmed context) are sufficient to fully answer the query
-3. If not sufficient, what information is still missing
+Your ONLY task: determine which candidate chunks contain information directly relevant
+to answering the user's query.
 
 Relevance criteria:
 - A chunk is relevant if it provides substantive, specific information that helps answer the query
@@ -22,18 +24,49 @@ Relevance criteria:
 
 Respond with ONLY a JSON object (no markdown fences, no extra text):
 {
-  "relevant_indices": [0, 2],
-  "is_sufficient": false,
-  "gap_analysis": "The retained relevant chunks cover X but are still missing information about Y and Z."
+  "relevant_indices": [0, 2]
 }"""
 
-GRADE_USER = """\
+GRADE_PART1_USER = """\
 【Original Query】: {original_query}
-
-【Confirmed Relevant Context】: {retained_summary}
 
 【Candidate Chunks to Evaluate】:
 {chunks_text}"""
+
+# ══════════════════════════════════════════════════════════════════════════
+# Node 2b: Grade Part 2 — synthesize retained_info, gap analysis, sufficiency
+# ══════════════════════════════════════════════════════════════════════════
+
+GRADE_PART2_SYSTEM = """\
+You are a rigorous information synthesizer for a RAG system.
+
+Given the original user query and all confirmed relevant information gathered so far,
+perform these steps IN ORDER:
+
+1. **retained_info**: Write a structured, information-dense summary of everything confirmed
+   so far. Include key facts, data points, relationships, and their sources. This summary
+   will be used as context for future iterations — be comprehensive but concise. Do NOT
+   copy chunk text verbatim; synthesize and organize the information.
+
+2. **gap_analysis**: Analyze what aspects of the original query are NOT yet covered by
+   the confirmed information. Be specific about what's missing.
+
+3. **is_sufficient**: Based on the confirmed information, determine whether we have enough
+   to fully and accurately answer the original query. Only mark true if ALL key aspects
+   are covered.
+
+Respond with ONLY a JSON object (no markdown fences, no extra text):
+{
+  "retained_info": "Structured summary of all confirmed information with sources...",
+  "gap_analysis": "Specific analysis of what information is still missing...",
+  "is_sufficient": false
+}"""
+
+GRADE_PART2_USER = """\
+【Original Query】: {original_query}
+
+【All Confirmed Relevant Information】:
+{retained_chunks_text}"""
 
 # ══════════════════════════════════════════════════════════════════════════
 # Node 3: Check & Rewrite — generate a fresh query avoiding history
@@ -41,8 +74,9 @@ GRADE_USER = """\
 
 REWRITE_SYSTEM = """\
 You are a search query optimizer for a vector database. Given the original user question,
-an analysis of what information is still missing, and a list of previously tried queries
-that did NOT return sufficient results, generate a brand new search query.
+an analysis of what information is still missing, a summary of what we already know,
+and a list of previously tried queries that did NOT return sufficient results,
+generate a brand new search query.
 
 Guidelines:
 1. Target the missing information identified in the gap analysis
@@ -58,6 +92,8 @@ Respond with ONLY a JSON object (no markdown fences, no extra text):
 REWRITE_USER = """\
 【Original Question】: {original_query}
 
+【Information Already Known】: {retained_info}
+
 【Information Still Missing】: {gap_analysis}
 
 【Previously Tried Queries (all failed)】:
@@ -70,8 +106,9 @@ Generate a new search query targeting the missing information:"""
 # ══════════════════════════════════════════════════════════════════════════
 
 DECOMPOSE_SYSTEM = """\
-You are a query decomposition expert. Given a complex question and an analysis of what
-information is currently missing, break the question into 2-3 focused sub-questions.
+You are a query decomposition expert. Given a complex question, a summary of what we
+already know, and an analysis of what information is still missing, break the question
+into 2-3 focused sub-questions.
 
 Each sub-question should:
 - Be self-contained and answerable independently through document retrieval
@@ -84,12 +121,14 @@ Respond with ONLY a JSON array of strings (no markdown fences, no extra text):
 DECOMPOSE_USER = """\
 【Original Question】: {original_query}
 
+【Information Already Known】: {retained_info}
+
 【Missing Information Analysis】: {gap_analysis}
 
 Break down into focused sub-questions:"""
 
 # ══════════════════════════════════════════════════════════════════════════
-# Node 5: Sub-query Grade — lighter evaluation per sub-question
+# Node 5: Sub-query Grade — lighter evaluation per sub-question (no split)
 # ══════════════════════════════════════════════════════════════════════════
 
 SUB_GRADE_SYSTEM = """\
@@ -114,7 +153,7 @@ SUB_GRADE_USER = """\
 {chunks_text}"""
 
 # ══════════════════════════════════════════════════════════════════════════
-# Node 6: Generate Answer — synthesize final response from golden context
+# Node 6: Generate Answer — synthesize final response
 # ══════════════════════════════════════════════════════════════════════════
 
 GENERATE_SYSTEM = """\
@@ -128,7 +167,10 @@ You are a rigorous intelligent assistant that answers questions based ONLY on an
 5. When the context contains source metadata, mention which document/source provided the key information"""
 
 GENERATE_USER = """\
-【Known Context】
+【Information Summary】
+{retained_info}
+
+【Detailed Context from Documents】
 {context}
 
 【Original Question】

@@ -24,6 +24,7 @@ from src.rag.agent_nodes import (
     node_check_and_rewrite,
     node_decompose_query,
     node_parallel_sub_queries,
+    node_update_retained_info,
     node_build_context,
     node_generate,
     node_generate_stream,
@@ -123,8 +124,9 @@ class AgenticRAG:
 
             self._emit_step("grading", "Evaluating relevance of results...")
             node_llm_grade(state, current_batch, llm=self.llm, temperature=self.temperature)
-            logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d gap='%s'",
+            logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d info_len=%d gap='%s'",
                         state.is_sufficient, len(state.retained_chunks),
+                        len(state.retained_info),
                         state.current_gap_analysis[:60] if state.current_gap_analysis else "(none)")
 
             if state.is_sufficient:
@@ -152,9 +154,13 @@ class AgenticRAG:
                 search_mode=self.search_mode, min_score=self.min_score,
                 db=self.db, temperature=self.temperature,
             )
+            # Re-run Part 2 to update retained_info with new sub-query results
+            self._emit_step("synthesizing", "Updating information summary...")
+            node_update_retained_info(state, llm=self.llm, temperature=self.temperature)
 
         # ── Phase 3: Synthesize ────────────────────────────────────
-        logger.info("[AgenticRAG] ▶ P3 synthesize (retained=%d chunks)", len(state.retained_chunks))
+        logger.info("[AgenticRAG] ▶ P3 synthesize (retained=%d chunks, info_len=%d)",
+                    len(state.retained_chunks), len(state.retained_info))
         result = self._synthesize(state)
         logger.info("[AgenticRAG] ═══ DONE ═══ iterations=%d sources=%d answer_len=%d",
                     result.iterations, len(result.sources), len(result.answer))
@@ -185,10 +191,11 @@ class AgenticRAG:
                 state.phase = "decompose"
                 break
 
-            yield {"type": "step", "step": "retrieving",
-                   "content": f"Iteration {state.iteration_count + 1}/{max_iter}: Searching {len(collections)} collection(s)..."}, None
+            iter_num = state.iteration_count + 1
+            yield {"type": "step", "step": "retrieving", "iteration": iter_num,
+                   "content": f"Searching {len(collections)} collection(s)..."}, None
             logger.info("[AgenticRAG] ▶ P1 iter %d/%d query='%s'",
-                        state.iteration_count + 1, max_iter, state.current_query[:50])
+                        iter_num, max_iter, state.current_query[:50])
 
             current_batch = node_retrieve_and_rerank(
                 state,
@@ -201,43 +208,57 @@ class AgenticRAG:
             )
 
             if not current_batch:
-                yield {"type": "step", "step": "rewriting",
+                yield {"type": "step", "step": "rewriting", "iteration": iter_num,
                        "content": "No results found, rewriting query..."}, None
                 logger.info("[AgenticRAG] ◇ No fresh chunks, rewriting")
                 node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
+                yield {"type": "detail", "iteration": iter_num,
+                       "content": f"New query: {state.current_query}"}, None
                 if state.phase == "rewrite":
                     continue
                 break
 
-            yield {"type": "step", "step": "grading",
+            yield {"type": "step", "step": "grading", "iteration": iter_num,
                    "content": "Evaluating relevance of results..."}, None
             node_llm_grade(state, current_batch, llm=self.llm, temperature=self.temperature)
-            logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d gap='%s'",
+            logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d info_len=%d gap='%s'",
                         state.is_sufficient, len(state.retained_chunks),
+                        len(state.retained_info),
                         state.current_gap_analysis[:60] if state.current_gap_analysis else "(none)")
+
+            # Detail: grading result
+            suff_label = "yes" if state.is_sufficient else "no"
+            gap_text = state.current_gap_analysis or ""
+            yield {"type": "detail", "iteration": iter_num,
+                   "content": f"{len(state.retained_chunks)} relevant | sufficient: {suff_label}" +
+                              (f" | gap: {gap_text}" if gap_text else "")}, None
 
             if state.is_sufficient:
                 state.phase = "synthesize"
-                logger.info("[AgenticRAG] ✓ P1 SUFFICIENT after %d iterations", state.iteration_count + 1)
+                logger.info("[AgenticRAG] ✓ P1 SUFFICIENT after %d iterations", iter_num)
                 break
 
-            yield {"type": "step", "step": "rewriting",
+            yield {"type": "step", "step": "rewriting", "iteration": iter_num,
                    "content": "Rewriting query for better results..."}, None
             node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
+            yield {"type": "detail", "iteration": iter_num,
+                   "content": f"New query: {state.current_query}"}, None
 
         # ── Phase 2: Fallback Decompose ─────────────────────────────
         if state.phase == "decompose":
             logger.info("[AgenticRAG] ▶ P2 decompose (P1 exhausted after %d iters, retained=%d)",
                         state.iteration_count, len(state.retained_chunks))
-            yield {"type": "step", "step": "decomposing",
+            yield {"type": "step", "step": "decomposing", "iteration": 0,
                    "content": "Breaking query into sub-questions for deeper search..."}, None
             sub_queries = node_decompose_query(state, llm=self.llm, temperature=self.temperature)
             logger.info("[AgenticRAG] P2 decomposed %d sub-queries: %s",
                         len(sub_queries), [sq[:40] for sq in sub_queries])
+            yield {"type": "detail", "iteration": 0,
+                   "content": f"Sub-questions: {'; '.join(sub_queries)}"}, None
             sq_count = len(sub_queries)
             for i in range(sq_count):
-                yield {"type": "step", "step": "retrieving",
-                       "content": f"Searching sub-question {i + 1}/{sq_count}: {sub_queries[i][:60]}..."}, None
+                yield {"type": "step", "step": "retrieving", "iteration": 0,
+                       "content": f"Sub-question {i + 1}/{sq_count}: {sub_queries[i][:80]}"}, None
             node_parallel_sub_queries(
                 state, sub_queries,
                 retriever=self.retriever, reranker=self.reranker, llm=self.llm,
@@ -245,9 +266,14 @@ class AgenticRAG:
                 search_mode=self.search_mode, min_score=self.min_score,
                 db=self.db, temperature=self.temperature,
             )
+            # Re-run Part 2 to update retained_info with new sub-query results
+            yield {"type": "step", "step": "synthesizing", "iteration": 0,
+                   "content": "Updating information summary..."}, None
+            node_update_retained_info(state, llm=self.llm, temperature=self.temperature)
 
         # ── Phase 3: Synthesize ────────────────────────────────────
-        logger.info("[AgenticRAG] ▶ P3 synthesize (retained=%d chunks)", len(state.retained_chunks))
+        logger.info("[AgenticRAG] ▶ P3 synthesize (retained=%d chunks, info_len=%d)",
+                    len(state.retained_chunks), len(state.retained_info))
         context = node_build_context(state)
         sources = [
             {"text": c.text, "score": c.score, "metadata": c.metadata}
@@ -265,7 +291,19 @@ class AgenticRAG:
             yield result, iter([])
             return
 
-        yield {"type": "step", "step": "generating",
+        # Emit assembling step with chunk order details
+        yield {"type": "step", "step": "assembling", "iteration": state.iteration_count + 1,
+               "content": f"Assembling {len(state.retained_chunks)} chunks into context..."}, None
+        assembly_parts: list[str] = []
+        for idx, c in enumerate(state.retained_chunks):
+            col = c.metadata.get("collection", "?")
+            src = c.metadata.get("source", "?")
+            ci = c.metadata.get("chunk_index", "?")
+            assembly_parts.append(f"[{idx}] {col} | {src} | chunk #{ci}")
+        yield {"type": "detail", "iteration": state.iteration_count + 1,
+               "content": "\n".join(assembly_parts)}, None
+
+        yield {"type": "step", "step": "generating", "iteration": state.iteration_count + 1,
                "content": f"Generating answer from {len(state.retained_chunks)} sources..."}, None
 
         result = AgentResult(

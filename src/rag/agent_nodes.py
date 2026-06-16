@@ -1,6 +1,10 @@
 """Agentic RAG v2 node functions — pure functions for each pipeline stage.
 
 Each node mutates AgentState in-place. Retrieval/grading helpers are module-private.
+
+Grade is split into two phases:
+  Part 1: relevance judgment (cheap, focused)
+  Part 2: retained_info synthesis + gap analysis + sufficiency
 """
 
 from __future__ import annotations
@@ -12,8 +16,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.rag.agent_state import AgentState
 from src.rag.agent_prompts import (
-    GRADE_SYSTEM,
-    GRADE_USER,
+    GRADE_PART1_SYSTEM,
+    GRADE_PART1_USER,
+    GRADE_PART2_SYSTEM,
+    GRADE_PART2_USER,
     REWRITE_SYSTEM,
     REWRITE_USER,
     DECOMPOSE_SYSTEM,
@@ -190,6 +196,16 @@ def _dedup_by_id(
     return new_chunks, new_ids
 
 
+def _build_retained_chunks_text(chunks: list[RetrievedChunk]) -> str:
+    """Build formatted text from retained_chunks with source info, no truncation."""
+    parts = []
+    for i, c in enumerate(chunks):
+        src = c.metadata.get("source", "unknown")
+        col = c.metadata.get("collection", "unknown")
+        parts.append(f"[{i}] (database: {col}, source: {src}) {c.text}")
+    return "\n---\n".join(parts) if parts else "None"
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # Node 1: Retrieve & Rerank
 # ══════════════════════════════════════════════════════════════════════════
@@ -255,7 +271,7 @@ def _chunk_in_list(chunk: RetrievedChunk, chunks: list[RetrievedChunk]) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# Node 2: LLM Grade
+# Node 2: LLM Grade (split into Part 1 + Part 2)
 # ══════════════════════════════════════════════════════════════════════════
 
 def node_llm_grade(
@@ -265,12 +281,11 @@ def node_llm_grade(
     llm: LLMProvider,
     temperature: float | None = None,
 ) -> None:
-    """Evaluate current batch of chunks for relevance and sufficiency.
+    """Two-phase grade: Part 1 judges relevance, Part 2 synthesizes info.
 
     Side effects:
-    - Moves relevant chunks from current_batch to state.retained_chunks
-    - Sets state.current_gap_analysis, state.is_sufficient
-    - Updates state.seen_chunk_ids
+    - Part 1: Moves relevant chunks from current_batch to state.retained_chunks
+    - Part 2: Updates state.retained_info, state.current_gap_analysis, state.is_sufficient
     """
     if not current_batch:
         logger.info("[AgenticRAG] N2 grade skipped (empty batch)")
@@ -278,55 +293,57 @@ def node_llm_grade(
         state.current_gap_analysis = "No new results found for the current query."
         return
 
-    logger.info("[AgenticRAG] N2 grading %d chunks (retained so far: %d)",
+    # ── Part 1: Relevance judgment ──────────────────────────────────
+    _grade_part1(state, current_batch, llm=llm, temperature=temperature)
+
+    # ── Part 2: Synthesize retained_info + gap + sufficient ────────
+    node_update_retained_info(state, llm=llm, temperature=temperature)
+
+
+def _grade_part1(
+    state: AgentState,
+    current_batch: list[RetrievedChunk],
+    *,
+    llm: LLMProvider,
+    temperature: float | None = None,
+) -> None:
+    """Part 1: Judge relevance of candidate chunks. Promote relevant ones to retained_chunks."""
+    logger.info("[AgenticRAG] N2-P1 grading %d chunks (retained so far: %d)",
                 len(current_batch), len(state.retained_chunks))
 
-    # Build retained summary (truncate for prompt efficiency)
-    retained_summary = "None"
-    if state.retained_chunks:
-        parts = []
-        for c in state.retained_chunks:
-            src = c.metadata.get("source", "unknown")
-            parts.append(f"[{src}] {c.text[:300]}")
-        retained_summary = "\n".join(parts)
-
-    # Build candidate text with indices
+    # Build candidate text with indices (no truncation)
     chunks_text_parts = []
     for i, c in enumerate(current_batch):
         src = c.metadata.get("source", "unknown")
-        chunks_text_parts.append(f"[{i}] (source: {src}) {c.text[:600]}")
+        col = c.metadata.get("collection", "unknown")
+        chunks_text_parts.append(f"[{i}] (database: {col}, source: {src}) {c.text}")
     chunks_text = "\n---\n".join(chunks_text_parts)
 
-    prompt = GRADE_USER.format(
+    prompt = GRADE_PART1_USER.format(
         original_query=state.original_query,
-        retained_summary=retained_summary,
         chunks_text=chunks_text,
     )
 
     try:
-        result = _llm_generate_json(llm, prompt, GRADE_SYSTEM, temperature=temperature)
+        result = _llm_generate_json(llm, prompt, GRADE_PART1_SYSTEM, temperature=temperature)
     except ValueError as e:
-        logger.error("[AgenticRAG] Grade JSON parsing failed: %s", e)
-        # Conservative fallback: take first 3 chunks as relevant, mark insufficient
-        _grade_fallback(state, current_batch)
+        logger.error("[AgenticRAG] Part 1 grade JSON parsing failed: %s", e)
+        _grade_part1_fallback(state, current_batch)
         return
 
     if not isinstance(result, dict):
-        logger.error("[AgenticRAG] Grade result is not a dict: %s", type(result))
-        _grade_fallback(state, current_batch)
+        logger.error("[AgenticRAG] Part 1 grade result is not a dict: %s", type(result))
+        _grade_part1_fallback(state, current_batch)
         return
 
-    # Extract fields with validation
+    # Extract relevant indices
     relevant_indices: list[int] = []
     raw_indices = result.get("relevant_indices", [])
     if isinstance(raw_indices, list):
         n = len(current_batch)
         relevant_indices = [int(i) for i in raw_indices if isinstance(i, (int, float)) and 0 <= int(i) < n]
 
-    state.is_sufficient = bool(result.get("is_sufficient", False))
-    state.current_gap_analysis = str(result.get("gap_analysis", ""))
-
-    # Move relevant chunks to retained_chunks
+    # Promote relevant chunks to retained_chunks
     promoted = 0
     for idx in relevant_indices:
         chunk = current_batch[idx]
@@ -334,20 +351,73 @@ def node_llm_grade(
             state.retained_chunks.append(chunk)
             promoted += 1
 
-    logger.info("[AgenticRAG] N2 result: %d/%d relevant, sufficient=%s",
-                promoted, len(current_batch), state.is_sufficient)
-    if not state.is_sufficient and state.current_gap_analysis:
-        logger.info("[AgenticRAG] N2 gap: %s", state.current_gap_analysis[:120])
+    logger.info("[AgenticRAG] N2-P1 result: %d/%d relevant, promoted %d",
+                len(relevant_indices), len(current_batch), promoted)
 
 
-def _grade_fallback(state: AgentState, current_batch: list[RetrievedChunk]) -> None:
+def _grade_part1_fallback(state: AgentState, current_batch: list[RetrievedChunk]) -> None:
     """Conservative fallback: assume first min(3, len) chunks are relevant."""
-    logger.warning("[AgenticRAG] N2 using FALLBACK (taking first %d chunks)", min(3, len(current_batch)))
-    state.is_sufficient = False
-    state.current_gap_analysis = "Unable to evaluate results — the evaluator did not produce valid output."
+    logger.warning("[AgenticRAG] N2-P1 FALLBACK (taking first %d chunks)", min(3, len(current_batch)))
     for c in current_batch[:3]:
         if not _chunk_in_list(c, state.retained_chunks):
             state.retained_chunks.append(c)
+
+
+def node_update_retained_info(
+    state: AgentState,
+    *,
+    llm: LLMProvider,
+    temperature: float | None = None,
+) -> None:
+    """Run Part 2 grade to update retained_info from current retained_chunks.
+
+    Used both within the normal grade flow and as a standalone update after
+    Phase 2 sub-query merging.
+    """
+    if not state.retained_chunks:
+        logger.info("[AgenticRAG] N2-P2 skipped (no retained chunks)")
+        state.retained_info = "No relevant information found yet."
+        state.is_sufficient = False
+        state.current_gap_analysis = "No relevant information has been found."
+        return
+
+    logger.info("[AgenticRAG] N2-P2 synthesizing from %d retained chunks", len(state.retained_chunks))
+
+    retained_chunks_text = _build_retained_chunks_text(state.retained_chunks)
+
+    prompt = GRADE_PART2_USER.format(
+        original_query=state.original_query,
+        retained_chunks_text=retained_chunks_text,
+    )
+
+    try:
+        result = _llm_generate_json(llm, prompt, GRADE_PART2_SYSTEM, temperature=temperature)
+    except ValueError as e:
+        logger.error("[AgenticRAG] Part 2 grade JSON parsing failed: %s", e)
+        _grade_part2_fallback(state)
+        return
+
+    if not isinstance(result, dict):
+        logger.error("[AgenticRAG] Part 2 grade result is not a dict: %s", type(result))
+        _grade_part2_fallback(state)
+        return
+
+    state.retained_info = str(result.get("retained_info", state.retained_info))
+    state.current_gap_analysis = str(result.get("gap_analysis", ""))
+    state.is_sufficient = bool(result.get("is_sufficient", False))
+
+    logger.info("[AgenticRAG] N2-P2 result: sufficient=%s info_len=%d gap='%s'",
+                state.is_sufficient, len(state.retained_info),
+                state.current_gap_analysis[:120] if state.current_gap_analysis else "(none)")
+
+
+def _grade_part2_fallback(state: AgentState) -> None:
+    """Fallback when Part 2 JSON parse fails: keep previous retained_info, mark insufficient."""
+    logger.warning("[AgenticRAG] N2-P2 FALLBACK (keeping previous retained_info)")
+    if not state.retained_info:
+        state.retained_info = "Unable to synthesize information summary."
+    state.is_sufficient = False
+    state.current_gap_analysis = "Unable to evaluate — the synthesizer did not produce valid output."
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -376,10 +446,11 @@ def node_check_and_rewrite(
         state.phase = "decompose"
         return
 
-    # Generate new query
+    # Generate new query (with retained_info context)
     history_text = "\n".join(f"- {q}" for q in state.history_queries)
     prompt = REWRITE_USER.format(
         original_query=state.original_query,
+        retained_info=state.retained_info or "No information gathered yet.",
         gap_analysis=state.current_gap_analysis or "No relevant information found in previous searches.",
         history_queries=history_text,
     )
@@ -413,11 +484,11 @@ def node_decompose_query(
 ) -> list[str]:
     """Break original_query into 2-3 sub-questions for independent retrieval.
 
-    Returns list of sub-query strings. Sets state.phase = "synthesize" as a signal
-    that Phase 2 is the last retrieval step before synthesis.
+    Returns list of sub-query strings.
     """
     prompt = DECOMPOSE_USER.format(
         original_query=state.original_query,
+        retained_info=state.retained_info or "No information gathered yet.",
         gap_analysis=state.current_gap_analysis or "No relevant information has been found so far.",
     )
 
@@ -438,7 +509,7 @@ def node_decompose_query(
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# Node 5: Parallel Sub-query Retrieval & Grade
+# Node 5: Parallel Sub-query Retrieval & Grade (no split — stays lightweight)
 # ══════════════════════════════════════════════════════════════════════════
 
 def node_parallel_sub_queries(
@@ -485,7 +556,7 @@ def node_parallel_sub_queries(
                 logger.info("[AgenticRAG] N5 sq%d: all %d deduped", index + 1, len(reranked))
                 return []
 
-            # Grade with LLM
+            # Grade with LLM (lightweight, no split)
             chunks_text_parts = [
                 f"[{i}] {c.text[:600]}" for i, c in enumerate(fresh)
             ]
@@ -550,7 +621,7 @@ def node_parallel_sub_queries(
 def node_build_context(state: AgentState) -> str:
     """Build clustered context string from retained_chunks.
 
-    Clustering: Database → Source → chunk_index order.
+    Clustering: Database -> Source -> chunk_index order.
     Final dedup by chunk ID (safety check).
     """
     if not state.retained_chunks:
@@ -605,6 +676,16 @@ def node_build_context(state: AgentState) -> str:
             parts.append("")  # blank line between sources
 
     context = "\n".join(parts)
+
+    # Log exact assembly order
+    assembly_order: list[str] = []
+    for idx, c in enumerate(unique):
+        col = c.metadata.get("collection", "Unknown DB")
+        src = c.metadata.get("source", "Unknown Source")
+        ci = c.metadata.get("chunk_index", "?")
+        assembly_order.append(f"  [{idx}] {col} | {src} | chunk #{ci}")
+    logger.info("[AgenticRAG] N6 assembly order (actual feed to LLM):\n%s", "\n".join(assembly_order))
+
     # Count stats for log
     col_count = len(clusters)
     src_count = sum(len(sources) for sources in clusters.values())
@@ -620,11 +701,15 @@ def node_generate(
     llm: LLMProvider,
     temperature: float | None = None,
 ) -> str:
-    """Generate non-streaming answer from clustered context."""
+    """Generate non-streaming answer from retained_info + clustered context."""
     if not context:
         return "I searched all relevant documents in the knowledge base but could not find information matching your query. Please try providing more keywords or rephrasing your question."
 
-    prompt = GENERATE_USER.format(context=context[:4000], question=state.original_query)
+    prompt = GENERATE_USER.format(
+        retained_info=state.retained_info or "No summary available.",
+        context=context[:8000],
+        question=state.original_query,
+    )
     return llm.generate(prompt, system=GENERATE_SYSTEM, temperature=temperature).strip()
 
 
@@ -640,5 +725,9 @@ def node_generate_stream(
         yield "I searched all relevant documents but could not find information matching your query. Please try providing more keywords or rephrasing your question."
         return
 
-    prompt = GENERATE_USER.format(context=context[:4000], question=state.original_query)
+    prompt = GENERATE_USER.format(
+        retained_info=state.retained_info or "No summary available.",
+        context=context[:8000],
+        question=state.original_query,
+    )
     yield from llm.generate_stream(prompt, system=GENERATE_SYSTEM, temperature=temperature)

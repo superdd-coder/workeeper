@@ -1,5 +1,13 @@
-import { useAppStore, type Source } from "@/stores/app-store"
+import { useAppStore, type Source, type ThinkingIteration, type MetaInfo } from "@/stores/app-store"
 
+interface StreamInfo {
+  type: "info"
+  provider?: string
+  model?: string
+  search_mode?: string
+  mode?: string
+  max_iterations?: number
+}
 interface StreamMeta {
   type: "meta"
   sources: Source[]
@@ -19,6 +27,12 @@ interface StreamStep {
   type: "step"
   step: string
   content: string
+  iteration?: number
+}
+interface StreamDetail {
+  type: "detail"
+  iteration: number
+  content: string
 }
 interface StreamDone {
   type: "done"
@@ -27,13 +41,15 @@ interface StreamError {
   type: "error"
   content: string
 }
-type StreamEvent = StreamMeta | StreamToken | StreamStep | StreamDone | StreamError
+type StreamEvent = StreamInfo | StreamMeta | StreamToken | StreamStep | StreamDetail | StreamDone | StreamError
 
 export function useStreamChat() {
   const {
     addMessage,
     appendToLastMessage,
     setLastMessageSources,
+    setLastMessageMetaInfo,
+    setLastMessageThinkingSteps,
     setStreaming,
   } = useAppStore()
 
@@ -52,6 +68,10 @@ export function useStreamChat() {
     addMessage({ id: userId, role: "user", content: question })
     addMessage({ id: assistantId, role: "assistant", content: "", isStreaming: true })
     setStreaming(true)
+
+    // Local accumulator for thinking steps (rebuilt on each update)
+    const thinkingSteps: ThinkingIteration[] = []
+    let metaInfo: MetaInfo = {}
 
     try {
       const body: Record<string, unknown> = {
@@ -106,34 +126,76 @@ export function useStreamChat() {
           }
 
           switch (event.type) {
+            case "info": {
+              metaInfo = {
+                provider: event.provider,
+                model: event.model,
+                search_mode: event.search_mode,
+                mode: event.mode,
+                max_iterations: event.max_iterations,
+              }
+              setLastMessageMetaInfo(metaInfo)
+              break
+            }
             case "meta": {
-              // Append metadata header (don't overwrite previous steps)
-              const parts: string[] = []
-              if (event.provider || event.model) {
-                parts.push(`**Provider:** ${event.provider || "unknown"} / ${event.model || "unknown"}`)
-              }
-              if (event.search_mode) {
-                parts.push(`**Search:** ${event.search_mode}`)
-              }
-              if (event.mode) {
-                const modeLabel = event.mode === "agentic" ? "Agentic RAG" :
-                  event.mode === "parent-child" ? "Parent-Child" : "Standard"
-                parts.push(`**Mode:** ${modeLabel}`)
-              }
-              if (event.agent_active && event.iterations > 0) {
-                parts.push(`**Iterations:** ${event.iterations}`)
-              }
-              if (parts.length > 0) {
-                appendToLastMessage("\n\n" + parts.join(" | ") + "\n\n---\n\n")
+              // Legacy meta event — extract provider info if no info event was received
+              if (!metaInfo.provider && (event.provider || event.model)) {
+                metaInfo = {
+                  provider: event.provider,
+                  model: event.model,
+                  search_mode: event.search_mode,
+                  mode: event.mode,
+                }
+                setLastMessageMetaInfo(metaInfo)
               }
               setLastMessageSources(event.sources)
               break
             }
-            case "step":
-              // Show step progress in the message
-              appendToLastMessage(`\n\n*${event.content}*`)
+            case "step": {
+              const iterNum = event.iteration ?? 0
+              // Mark ALL steps across ALL iterations as done first
+              for (const g of thinkingSteps) {
+                for (const s of g.steps) {
+                  s.status = "done"
+                }
+              }
+              // Find or create iteration group
+              let group = thinkingSteps.find(g => g.iteration === iterNum)
+              if (!group) {
+                group = { iteration: iterNum, steps: [] }
+                thinkingSteps.push(group)
+                // Sort by iteration number (0 = decompose phase, goes last)
+                thinkingSteps.sort((a, b) => {
+                  if (a.iteration === 0) return 1
+                  if (b.iteration === 0) return -1
+                  return a.iteration - b.iteration
+                })
+              }
+              // Add new active step
+              group.steps.push({ label: event.content, status: "active" })
+              // Trigger store update
+              setLastMessageThinkingSteps([...thinkingSteps])
               break
+            }
+            case "detail": {
+              const iterNum = event.iteration ?? 0
+              const group = thinkingSteps.find(g => g.iteration === iterNum)
+              if (group && group.steps.length > 0) {
+                const lastStep = group.steps[group.steps.length - 1]
+                if (!lastStep.details) lastStep.details = []
+                lastStep.details.push(event.content)
+                setLastMessageThinkingSteps([...thinkingSteps])
+              }
+              break
+            }
             case "token":
+              // Mark all thinking steps as done when answer tokens start
+              for (const g of thinkingSteps) {
+                for (const s of g.steps) {
+                  s.status = "done"
+                }
+              }
+              setLastMessageThinkingSteps([...thinkingSteps])
               appendToLastMessage(event.content)
               break
             case "done":

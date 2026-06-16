@@ -215,6 +215,17 @@ async def query_stream(req: QueryRequest):
                     db=services.db,
                     temperature=temperature,
                 )
+                # Send provider info upfront for the thinking steps UI
+                info = {
+                    "type": "info",
+                    "provider": provider_info["name"],
+                    "model": provider_info["model"],
+                    "search_mode": params["search_mode"],
+                    "mode": "agentic",
+                    "max_iterations": params["max_iterations"],
+                }
+                yield f"data: {json.dumps(info)}\n\n"
+
                 gen = agent.run_stream(query=req.question, collections=target_collections, top_k=params["top_k"])
                 for first, second in gen:
                     if isinstance(first, dict):

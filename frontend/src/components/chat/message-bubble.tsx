@@ -4,6 +4,7 @@ import { Bot, User } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { SourcesCard } from "./sources-card"
+import { ThinkingSteps } from "./thinking-steps"
 import type { Message, Source } from "@/stores/app-store"
 import { cn } from "@/lib/utils"
 
@@ -25,6 +26,17 @@ export const MessageBubble = memo(function MessageBubble({ message, onSelectSour
       )}
 
       <div className={cn("max-w-[75%] space-y-1", isUser && "order-first")}>
+        {/* Thinking steps (agentic mode) */}
+        {!isUser && (message.thinkingSteps?.length || message.metaInfo) && (
+          <ThinkingSteps
+            steps={message.thinkingSteps || []}
+            metaInfo={message.metaInfo}
+            isStreaming={!!message.isStreaming}
+          />
+        )}
+
+        {/* Answer content — only show when content exists, or no thinking steps (non-agentic) */}
+        {!isUser && !message.content && message.thinkingSteps?.length ? null : (
         <div
           className={cn(
             "rounded-2xl px-4 py-3 text-sm leading-relaxed",
@@ -43,6 +55,7 @@ export const MessageBubble = memo(function MessageBubble({ message, onSelectSour
             </div>
           )}
         </div>
+        )}
 
         {!isUser && message.sources && message.sources.length > 0 && (
           <SourcesCard

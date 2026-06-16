@@ -17,12 +17,33 @@ export interface Source {
   metadata: Record<string, unknown>
 }
 
+export interface ThinkingStep {
+  label: string
+  status: "active" | "done"
+  details?: string[]
+}
+
+export interface ThinkingIteration {
+  iteration: number
+  steps: ThinkingStep[]
+}
+
+export interface MetaInfo {
+  provider?: string
+  model?: string
+  search_mode?: string
+  mode?: string
+  max_iterations?: number
+}
+
 export interface Message {
   id: string
   role: "user" | "assistant"
   content: string
   sources?: Source[]
   isStreaming?: boolean
+  thinkingSteps?: ThinkingIteration[]
+  metaInfo?: MetaInfo
 }
 
 export interface LLMProvider {
@@ -76,6 +97,8 @@ interface AppState {
   addMessage: (msg: Message) => void
   appendToLastMessage: (token: string) => void
   setLastMessageSources: (sources: Source[]) => void
+  setLastMessageMetaInfo: (info: MetaInfo) => void
+  setLastMessageThinkingSteps: (steps: ThinkingIteration[]) => void
   setStreaming: (v: boolean) => void
 
   isOnline: boolean
@@ -164,6 +187,22 @@ export const useAppStore = create<AppState>((set) => ({
       const msgs = [...s.messages]
       if (msgs.length > 0) {
         msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], sources, isStreaming: false }
+      }
+      return { messages: msgs }
+    }),
+  setLastMessageMetaInfo: (info) =>
+    set((s) => {
+      const msgs = [...s.messages]
+      if (msgs.length > 0) {
+        msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], metaInfo: info }
+      }
+      return { messages: msgs }
+    }),
+  setLastMessageThinkingSteps: (steps) =>
+    set((s) => {
+      const msgs = [...s.messages]
+      if (msgs.length > 0) {
+        msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], thinkingSteps: steps }
       }
       return { messages: msgs }
     }),
