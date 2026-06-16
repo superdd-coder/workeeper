@@ -113,34 +113,27 @@ class AgenticRAG:
                 min_score=self.min_score,
                 db=self.db,
             )
-
-            # Fast path may have set is_sufficient in the node
-            if not state.is_sufficient:
-                if not current_batch:
-                    self._emit_step("rewriting", "No results found, rewriting query...")
-                    logger.info("[AgenticRAG] ◇ No fresh chunks (all deduped or empty), rewriting")
-                    node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
-                    if state.phase == "rewrite":
-                        continue
-                    break  # transitioned to decompose
-
-                self._emit_step("grading", "Evaluating relevance of results...")
-                node_llm_grade(state, current_batch, llm=self.llm, temperature=self.temperature)
-                logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d gap='%s'",
-                            state.is_sufficient, len(state.retained_chunks),
-                            state.current_gap_analysis[:60] if state.current_gap_analysis else "(none)")
-
-                if state.is_sufficient:
-                    state.phase = "synthesize"
-                    logger.info("[AgenticRAG] ✓ P1 SUFFICIENT after %d iterations", state.iteration_count + 1)
-                    break
-
-                self._emit_step("rewriting", "Rewriting query for better results...")
+            if not current_batch:
+                self._emit_step("rewriting", "No results found, rewriting query...")
+                logger.info("[AgenticRAG] ◇ No fresh chunks (all deduped or empty), rewriting")
                 node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
-            else:
+                if state.phase == "rewrite":
+                    continue
+                break  # transitioned to decompose
+
+            self._emit_step("grading", "Evaluating relevance of results...")
+            node_llm_grade(state, current_batch, llm=self.llm, temperature=self.temperature)
+            logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d gap='%s'",
+                        state.is_sufficient, len(state.retained_chunks),
+                        state.current_gap_analysis[:60] if state.current_gap_analysis else "(none)")
+
+            if state.is_sufficient:
                 state.phase = "synthesize"
-                logger.info("[AgenticRAG] ⚡ P1 fast-path (rerank ≥0.9), skipping to P3")
+                logger.info("[AgenticRAG] ✓ P1 SUFFICIENT after %d iterations", state.iteration_count + 1)
                 break
+
+            self._emit_step("rewriting", "Rewriting query for better results...")
+            node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
 
         # ── Phase 2: Fallback Decompose ─────────────────────────────
         if state.phase == "decompose":
@@ -207,35 +200,30 @@ class AgenticRAG:
                 db=self.db,
             )
 
-            if not state.is_sufficient:
-                if not current_batch:
-                    yield {"type": "step", "step": "rewriting",
-                           "content": "No results found, rewriting query..."}, None
-                    logger.info("[AgenticRAG] ◇ No fresh chunks, rewriting")
-                    node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
-                    if state.phase == "rewrite":
-                        continue
-                    break
-
-                yield {"type": "step", "step": "grading",
-                       "content": "Evaluating relevance of results..."}, None
-                node_llm_grade(state, current_batch, llm=self.llm, temperature=self.temperature)
-                logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d gap='%s'",
-                            state.is_sufficient, len(state.retained_chunks),
-                            state.current_gap_analysis[:60] if state.current_gap_analysis else "(none)")
-
-                if state.is_sufficient:
-                    state.phase = "synthesize"
-                    logger.info("[AgenticRAG] ✓ P1 SUFFICIENT after %d iterations", state.iteration_count + 1)
-                    break
-
+            if not current_batch:
                 yield {"type": "step", "step": "rewriting",
-                       "content": "Rewriting query for better results..."}, None
+                       "content": "No results found, rewriting query..."}, None
+                logger.info("[AgenticRAG] ◇ No fresh chunks, rewriting")
                 node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
-            else:
-                state.phase = "synthesize"
-                logger.info("[AgenticRAG] ⚡ P1 fast-path (rerank ≥0.9), skipping to P3")
+                if state.phase == "rewrite":
+                    continue
                 break
+
+            yield {"type": "step", "step": "grading",
+                   "content": "Evaluating relevance of results..."}, None
+            node_llm_grade(state, current_batch, llm=self.llm, temperature=self.temperature)
+            logger.info("[AgenticRAG] ◀ Grade: sufficient=%s retained=%d gap='%s'",
+                        state.is_sufficient, len(state.retained_chunks),
+                        state.current_gap_analysis[:60] if state.current_gap_analysis else "(none)")
+
+            if state.is_sufficient:
+                state.phase = "synthesize"
+                logger.info("[AgenticRAG] ✓ P1 SUFFICIENT after %d iterations", state.iteration_count + 1)
+                break
+
+            yield {"type": "step", "step": "rewriting",
+                   "content": "Rewriting query for better results..."}, None
+            node_check_and_rewrite(state, llm=self.llm, temperature=self.temperature)
 
         # ── Phase 2: Fallback Decompose ─────────────────────────────
         if state.phase == "decompose":
@@ -269,7 +257,7 @@ class AgenticRAG:
         if not context:
             logger.info("[AgenticRAG] ═══ DONE (empty) ═══")
             result = AgentResult(
-                answer="抱歉，我检索了知识库中的所有相关文档，未能找到与您问题匹配的信息。请尝试提供更多关键词。",
+                answer="I searched all relevant documents but could not find information matching your query. Please try providing more keywords or rephrasing your question.",
                 sources=[],
                 iterations=state.iteration_count,
                 query_used=state.current_query,
@@ -329,7 +317,7 @@ class AgenticRAG:
         if not context:
             logger.info("[AgenticRAG] ═══ DONE (empty) ═══")
             return AgentResult(
-                answer="抱歉，我检索了知识库中的所有相关文档，未能找到与您问题匹配的信息。请尝试提供更多关键词。",
+                answer="I searched all relevant documents but could not find information matching your query. Please try providing more keywords or rephrasing your question.",
                 sources=[],
                 iterations=state.iteration_count,
                 query_used=state.current_query,

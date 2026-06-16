@@ -209,8 +209,6 @@ def node_retrieve_and_rerank(
     Side effects:
     - Adds new chunks to state.all_chunks
     - Adds new chunk IDs to state.seen_chunk_ids
-    - If reranker top score >= 0.9, sets state.is_sufficient = True and
-      auto-promotes all new chunks to state.retained_chunks (fast path)
     """
     result_top_k = state.rerank_top_k if state.rerank_top_k > 0 else state.top_k
 
@@ -243,16 +241,6 @@ def node_retrieve_and_rerank(
 
     # 4. Add to elite pool
     state.all_chunks.extend(fresh)
-
-    # 5. Fast path: reranker score >= 0.9 → auto-sufficient
-    if reranker and fresh and fresh[0].score >= 0.9:
-        logger.info("[AgenticRAG] N1 ⚡ fast-path: rerank top=%.3f ≥0.9, auto-promoting %d chunks",
-                    fresh[0].score, len(fresh))
-        state.is_sufficient = True
-        state.current_gap_analysis = ""
-        for c in fresh:
-            if not _chunk_in_list(c, state.retained_chunks):
-                state.retained_chunks.append(c)
 
     logger.info("[AgenticRAG] N1 done: %d raw → %d reranked → %d fresh (elite=%d retained=%d seen=%d)",
                 len(raw_chunks), len(reranked), len(fresh),
@@ -649,7 +637,7 @@ def node_generate_stream(
 ):
     """Generator yielding tokens from LLM streaming."""
     if not context:
-        yield "抱歉，我检索了知识库中的所有相关文档，未能找到与您问题匹配的信息。请尝试提供更多关键词。"
+        yield "I searched all relevant documents but could not find information matching your query. Please try providing more keywords or rephrasing your question."
         return
 
     prompt = GENERATE_USER.format(context=context[:4000], question=state.original_query)
