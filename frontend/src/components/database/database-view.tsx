@@ -278,7 +278,7 @@ export function DatabaseView() {
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
               <Database className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Select a database or create one</p>
+              <p>Select a collection or create one</p>
             </div>
           </div>
         )}

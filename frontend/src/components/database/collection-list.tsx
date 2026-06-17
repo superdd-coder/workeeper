@@ -16,7 +16,7 @@ export function CollectionList({ collections, activeCollection, onSelect, onCrea
   return (
     <div className="w-56 border-r border-border bg-sidebar-background flex flex-col shrink-0">
       <div className="flex items-center justify-between p-3 border-b border-border">
-        <span className="text-sm font-medium">Databases</span>
+        <span className="text-sm font-medium">Collections</span>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onCreate}>
           <Plus className="h-4 w-4" />
         </Button>

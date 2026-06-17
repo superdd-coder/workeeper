@@ -364,7 +364,7 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
       <div className="flex-1 flex flex-col min-h-0 px-2">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full min-h-0">
           <TabsList variant="line" className="mb-1 shrink-0">
-            <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs">Source</TabsTrigger>
             <TabsTrigger value="extracted" className="text-xs">Extracted</TabsTrigger>
             <TabsTrigger value="chunks" className="text-xs">Chunks{chunks.length > 0 ? ` (${chunks.length})` : ""}</TabsTrigger>
             <TabsTrigger value="summary" className="text-xs">Summary</TabsTrigger>
@@ -619,7 +619,7 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
                             </svg>
                           )}
                         </span>
-                        Include in Project Summary
+                        Include in Collection Summary
                       </button>
                       <div className="flex justify-end">
                         <Button

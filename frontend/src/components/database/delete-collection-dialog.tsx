@@ -22,7 +22,7 @@ export function DeleteCollectionDialog({ name, onOpenChange, onDeleted }: Delete
       const res = await deleteCollection(name)
       if (res.error) toast.error(res.error)
       else {
-        toast.success(res.message || "Project deleted")
+        toast.success(res.message || "Collection deleted")
         setConfirmName("")
         onDeleted()
       }
@@ -37,7 +37,7 @@ export function DeleteCollectionDialog({ name, onOpenChange, onDeleted }: Delete
     <Dialog open={!!name} onOpenChange={(v) => { if (!v) { setConfirmName(""); onOpenChange(false) } }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Delete Project</DialogTitle>
+          <DialogTitle>Delete Collection</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -47,7 +47,7 @@ export function DeleteCollectionDialog({ name, onOpenChange, onDeleted }: Delete
           <Input
             value={confirmName}
             onChange={(e) => setConfirmName(e.target.value)}
-            placeholder="Type database name"
+            placeholder="Type collection name"
           />
         </div>
 

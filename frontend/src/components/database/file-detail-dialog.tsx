@@ -432,7 +432,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                         </div>
                       ) : docSummary ? (
                         <div className="space-y-4">
-                          {/* Include in Project Summary toggle */}
+                          {/* Include in Collection Summary toggle */}
                           <button
                             type="button"
                             onClick={async () => {
@@ -460,7 +460,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                                 </svg>
                               )}
                             </span>
-                            Include in Project Summary
+                            Include in Collection Summary
                           </button>
                           <div className="flex justify-end">
                             <Button

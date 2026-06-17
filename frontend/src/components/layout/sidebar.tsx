@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 
 const navItems: Array<{ view: SidebarView; icon: typeof MessageSquare; label: string }> = [
   { view: "chat", icon: MessageSquare, label: "Chat" },
-  { view: "database", icon: Database, label: "Project" },
+  { view: "database", icon: Database, label: "Collection" },
   { view: "recall", icon: Search, label: "Recall" },
   { view: "meeting", icon: Mic, label: "Meeting" },
   { view: "llm_provider", icon: Bot, label: "Settings" },

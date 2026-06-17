@@ -247,7 +247,7 @@ export function InfoPanel({ collection }: InfoPanelProps) {
           {consolidating ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <p className="text-sm">Consolidating project summary...</p>
+              <p className="text-sm">Consolidating collection summary...</p>
             </div>
           ) : summaryLoading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">

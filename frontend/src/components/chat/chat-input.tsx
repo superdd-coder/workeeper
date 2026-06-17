@@ -115,8 +115,8 @@ export function ChatInput() {
   }
 
   const collectionLabel = selectedCollections.length === 0
-    ? "All databases"
-    : `${selectedCollections.length} database${selectedCollections.length !== 1 ? "s" : ""}`
+    ? "All collections"
+    : `${selectedCollections.length} collection${selectedCollections.length !== 1 ? "s" : ""}`
 
   return (
     <div className="border-t border-border bg-background p-4">

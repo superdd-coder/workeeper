@@ -126,7 +126,7 @@ function SearchTab() {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="relative" ref={collectionMenuRef}>
               <Button variant="outline" size="sm" onClick={() => setShowCollections(!showCollections)}>
-                Databases ({selectedCollections.length})
+                Collections ({selectedCollections.length})
               </Button>
               {showCollections && (
                 <div ref={dropdownRef} className="fixed z-50 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 space-y-1 max-h-60 overflow-y-auto" style={{ top: collectionMenuRef.current ? collectionMenuRef.current.getBoundingClientRect().bottom + 4 : 0, left: collectionMenuRef.current ? collectionMenuRef.current.getBoundingClientRect().left : 0 }}>
@@ -210,7 +210,7 @@ function SearchTab() {
                 }}
                 className="rounded"
               />
-              <TooltipLabel label="Agentic RAG" tooltip="Uses LLM agent to analyze queries, route to relevant databases, and iteratively improve results. Reranker is required." />
+              <TooltipLabel label="Agentic RAG" tooltip="Uses LLM agent to analyze queries, route to relevant collections, and iteratively improve results. Reranker is required." />
             </label>
           </div>
         </CardContent>
@@ -233,7 +233,7 @@ function SearchTab() {
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Enter a query to search your databases</p>
+            <p>Enter a query to search your collections</p>
           </CardContent>
         </Card>
       )}
@@ -397,7 +397,7 @@ function EvaluateTab() {
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground space-y-4">
           <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p>Select a database to evaluate</p>
+          <p>Select a collection to evaluate</p>
           <div className="flex justify-center">
             <select
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -406,7 +406,7 @@ function EvaluateTab() {
                 if (e.target.value) setSelectedCollections([e.target.value])
               }}
             >
-              <option value="">Choose a database...</option>
+              <option value="">Choose a collection...</option>
               {allCollections.map((col) => (
                 <option key={col} value={col}>{col}</option>
               ))}

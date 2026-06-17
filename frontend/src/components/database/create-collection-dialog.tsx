@@ -55,7 +55,7 @@ export function CreateCollectionDialog({ open, onOpenChange, onCreated }: Create
       const res = await createCollection(name.trim(), parseInt(dimensions), chunkConfig)
       if (res.error) toast.error(res.error)
       else {
-        toast.success(res.message || "Project created")
+        toast.success(res.message || "Collection created")
         setName("")
         onOpenChange(false)
         onCreated()
@@ -71,13 +71,13 @@ export function CreateCollectionDialog({ open, onOpenChange, onCreated }: Create
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
+          <DialogTitle>Create Collection</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="my-database" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="my-collection" />
           </div>
 
           <div className="space-y-1.5">
