@@ -63,10 +63,13 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const contentRef = useRef(content)
   contentRef.current = content
-  // Snapshot of content right before distill API call — immune to Tiptap round-trip
-  const preDistillContentRef = useRef<string | null>(null)
-  // Synchronous snapshot updated in handleContentChange — not dependent on React re-render
   const latestContentRef = useRef(content)
+  // Ref mirror of activeNoteId — always current, immune to async closure staleness
+  const activeNoteIdRef = useRef(activeNoteId)
+  // Concurrent distill counter (boolean state flickers when one finishes before others)
+  const distillCountRef = useRef(0)
+  // Serializes server-side content updates for the same note (read-modify-write lock)
+  const serverWriteLockRef = useRef<Map<string, Promise<void>>>(new Map())
 
   // ── Helpers ────────────────────────────────────────────
 
@@ -125,6 +128,7 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
   useEffect(() => {
     if (open) {
       setActiveNoteId(noteId)
+      activeNoteIdRef.current = noteId
       setNavHistory([])
       setNavIndex(-1)
       setUserEdited(false)
@@ -132,6 +136,9 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
       userChangedRef.current = false
     }
   }, [open, noteId])
+
+  // Keep ref in sync with state (async closures capture stale state values)
+  useEffect(() => { activeNoteIdRef.current = activeNoteId }, [activeNoteId])
 
   // Fetch notes list — only on open
   useEffect(() => {
@@ -315,6 +322,27 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
 
   // ── Distillation (drop) ───────────────────────────────
 
+  // ── Server-side content update with per-note lock ────
+  // Serializes read-modify-write for concurrent distill completions targeting
+  // the same note while the user has switched away. Without this lock, two
+  // distills that both read→replace→write would overwrite each other.
+  const lockedServerReplace = useCallback(async (
+    noteId: string,
+    pattern: RegExp,
+    replacement: string,
+  ) => {
+    const prev = serverWriteLockRef.current.get(noteId) || Promise.resolve()
+    const task = prev.catch(() => {}).then(async () => {
+      const { content: server } = await getNote(collection, noteId)
+      const patched = (server || "").replace(pattern, replacement)
+      if (patched !== server) {
+        await updateNote(collection, noteId, { content: patched })
+      }
+    })
+    serverWriteLockRef.current.set(noteId, task)
+    await task
+  }, [collection])
+
   const handleDrop = useCallback(async (sourceNoteId: string) => {
     if (!currentNote || sourceNoteId === currentNote.id) return
     if (saveTimerRef.current) {
@@ -322,75 +350,75 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
       saveTimerRef.current = null
     }
 
-    // Snapshot the target note ID at drop time — must be captured BEFORE
-    // any await, because the user may switch notes during distillation.
+    // Snapshot everything that might change after await — closures are stale.
     const targetNoteId = currentNote.id
     const targetContent = contentRef.current
-
-    // Get source note title from notesList
     const sourceNote = notesList.find(n => n.id === sourceNoteId)
     const sourceTitle = sourceNote?.title || sourceNoteId
-
-    // Generate temporary block ID
     const tempBlockId = `distill-loading-${Date.now()}`
 
-    // Insert loading placeholder immediately
+    // Build and insert loading placeholder
     const loadingMd = `\n\n:::distill-block{"id":"${tempBlockId}","source":"${sourceNoteId}","source-title":"${sourceTitle}","loading":true}\n⏳ Distilling content from "${sourceTitle}"...\n:::\n\n`
     const loadingContent = targetContent + loadingMd
+    // Update ref synchronously — concurrent distills read contentRef.current,
+    // and React won't re-render until the microtask queue drains.
+    contentRef.current = loadingContent
     setContent(loadingContent)
-    preDistillContentRef.current = loadingContent
 
+    // Persist loading placeholder to server NOW — the switch-away path
+    // reads from server, so the block must be there before distill returns.
+    // Also prevents the auto-save from overwriting the result later.
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null }
+    await updateNote(collection, targetNoteId, { content: loadingContent })
+
+    distillCountRef.current++
     setDistilling(true)
     try {
       const res = await distillNote(collection, targetNoteId, sourceNoteId)
 
-      // Guard: user switched notes during distillation — silently discard.
-      // The loading placeholder stays in the original note (harmless).
-      if (activeNoteId !== targetNoteId) {
-        preDistillContentRef.current = null
-        return
-      }
-
-      // Replace loading placeholder with real content
       const attrs = JSON.stringify({
         id: res.block_id,
         source: res.source_note_id,
         "source-title": res.source_title,
       })
       const blockMd = `:::distill-block${attrs}\n${res.distilled_content}\n:::`
-
-      const loadingPattern = `:::distill-block\\{"id":"${tempBlockId}"[^}]*\\}\\n[\\s\\S]*?\\n:::`
-      const newContent = (preDistillContentRef.current ?? contentRef.current).replace(
-        new RegExp(loadingPattern),
-        blockMd
+      const loadingRe = new RegExp(
+        `:::distill-block\\{"id":"${tempBlockId}"[^}]*\\}\\n[\\s\\S]*?\\n:::`,
       )
-      preDistillContentRef.current = null
 
-      setContent(newContent)
-      setSavedContent(newContent)
-      await updateNote(collection, targetNoteId, { content: newContent })
-      if (activeNoteId === targetNoteId) {
-        await fetchNote(targetNoteId)
+      if (activeNoteIdRef.current === targetNoteId) {
+        // User still on target — replace in local editor state.
+        // contentRef.current is up-to-date (updated synchronously by any
+        // earlier concurrent distill that already completed).
+        const cur = contentRef.current.replace(loadingRe, blockMd)
+        contentRef.current = cur
+        setContent(cur)
+        setSavedContent(cur)
+        await updateNote(collection, targetNoteId, { content: cur })
+        toast.success(`Distilled "${res.source_title}" injected`)
+      } else {
+        // User switched away — loading placeholder was persisted to server
+        // by fetchNote (runs on every note switch). Replace it there.
+        // Lock prevents two concurrent distills from read-modify-write races.
+        await lockedServerReplace(targetNoteId, loadingRe, blockMd)
       }
-      toast.success(`Distilled "${res.source_title}" injected`)
     } catch (err) {
-      if (activeNoteId !== targetNoteId) {
-        preDistillContentRef.current = null
-        return
-      }
-      // Remove loading placeholder on error
-      const src = preDistillContentRef.current ?? contentRef.current
-      preDistillContentRef.current = null
-      const errorContent = src.replace(
-        new RegExp(`:::distill-block\\{"id":"${tempBlockId}"[^}]*\\}\\n[\\s\\S]*?\\n:::`),
-        ""
+      const loadingRe = new RegExp(
+        `:::distill-block\\{"id":"${tempBlockId}"[^}]*\\}\\n[\\s\\S]*?\\n:::`,
       )
-      setContent(errorContent)
+      if (activeNoteIdRef.current === targetNoteId) {
+        const cur = contentRef.current.replace(loadingRe, "")
+        contentRef.current = cur
+        setContent(cur)
+      } else {
+        lockedServerReplace(targetNoteId, loadingRe, "").catch(() => {})
+      }
       toast.error(err instanceof Error ? err.message : "Distillation failed")
     } finally {
-      setDistilling(false)
+      distillCountRef.current--
+      setDistilling(distillCountRef.current > 0)
     }
-  }, [collection, currentNote, fetchNote, notesList, activeNoteId])
+  }, [collection, currentNote, notesList, lockedServerReplace])
 
   // ── Distill block event listeners ─────────────────────
 

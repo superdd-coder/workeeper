@@ -208,14 +208,6 @@ def delete_distillation(collection: str, source_note_id: str) -> bool:
     return deleted
 
 
-def get_distillation_content_hash(collection: str, source_note_id: str) -> str | None:
-    """Get the content hash at the time the distillation was cached."""
-    hash_path = _note_dir(collection, source_note_id) / "distillation.hash"
-    if not hash_path.exists():
-        return None
-    return hash_path.read_text(encoding="utf-8").strip()
-
-
 def source_content_changed(collection: str, source_note_id: str) -> bool:
     """Check if the source note's content has changed since distillation was cached."""
     ndir = _note_dir(collection, source_note_id)
@@ -269,31 +261,6 @@ def get_references(collection: str, note_id: str) -> list[dict]:
 
 def save_references(collection: str, note_id: str, refs: list[dict]) -> None:
     _write_json(_note_dir(collection, note_id) / "references.json", refs)
-
-
-def add_reference(collection: str, note_id: str, block_id: str, source_note_id: str, source_title: str) -> None:
-    refs = get_references(collection, note_id)
-    refs.append({
-        "block_id": block_id,
-        "source_note_id": source_note_id,
-        "source_title": source_title,
-    })
-    save_references(collection, note_id, refs)
-    # Also update the source's referenced_by
-    _add_referenced_by(collection, source_note_id, note_id)
-
-
-def remove_reference_by_block(collection: str, note_id: str, block_id: str) -> None:
-    """Remove a specific injection block reference."""
-    refs = get_references(collection, note_id)
-    removed = [r for r in refs if r.get("block_id") == block_id]
-    refs = [r for r in refs if r.get("block_id") != block_id]
-    save_references(collection, note_id, refs)
-    # Check if any remaining refs point to the same source
-    for r in removed:
-        source_id = r.get("source_note_id")
-        if source_id and not any(rr.get("source_note_id") == source_id for rr in refs):
-            _remove_referenced_by(collection, source_id, note_id)
 
 
 # ── Referenced By (which notes reference this note) ────────────

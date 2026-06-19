@@ -169,7 +169,7 @@ def replace_injection_block(content: str, source_note_id: str, new_distilled: st
         re.DOTALL,
     )
     # Build replacement — preserve the original blockId from the matched block
-    def replacer(match: re.Match) -> str:
+    def _replacer(match: re.Match) -> str:
         original = match.group(0)
         # Extract the blockId from the original attrs
         id_match = re.search(r'"id"\s*:\s*"([^"]*)"', original)
@@ -181,7 +181,7 @@ def replace_injection_block(content: str, source_note_id: str, new_distilled: st
         }, ensure_ascii=False)[1:-1]  # Remove outer braces
         return f':::distill-block{{{attrs}}}\n{new_distilled}\n:::'
 
-    result, count = pattern.subn(replacer, content, count=1)
+    result, count = pattern.subn(_replacer, content, count=1)
     if count == 0:
         logger.warning("No distill-block found for source %s in content", source_note_id)
         return content
