@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime
@@ -157,8 +158,10 @@ async def distill_into_note(collection: str, note_id: str, body: dict = Body()):
 
     logger.info("[DISTILL] %s → %s in collection '%s'", source_note_id, note_id, collection)
 
-    # Generate distilled content (uses cache if available)
-    distilled = distill_note(collection, source_note_id, note_id)
+    # Generate distilled content (uses cache if available).
+    # Run in thread pool — the LLM call is synchronous and blocks the
+    # event loop, causing all other requests (getNote etc.) to queue.
+    distilled = await asyncio.to_thread(distill_note, collection, source_note_id, note_id)
 
     block_id = uuid.uuid4().hex[:12]
 

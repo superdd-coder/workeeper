@@ -155,12 +155,12 @@ def save_content(collection: str, note_id: str, content: str) -> str:
 # so it can be shared across all targets that reference this source.
 #
 # Layout:
-#   data/notes/{collection}/{note_id}/distillation.md    – Cached distillation
-#   data/notes/{collection}/{note_id}/distillation.hash  – Source content hash at cache time
+#   data/notes/{collection}/{note_id}/distillation.md    – Cached content
+#   data/notes/{collection}/{note_id}/distillation.hash  – Content hash at cache time
 
 
 def get_distillation(collection: str, source_note_id: str) -> str | None:
-    """Get cached distillation for a source note (content-hash-verified)."""
+    """Get cached distillation for a source note (hash-verified)."""
     ndir = _note_dir(collection, source_note_id)
     dist_path = ndir / "distillation.md"
     hash_path = ndir / "distillation.hash"
@@ -229,25 +229,32 @@ def source_content_changed(collection: str, source_note_id: str) -> bool:
 
 
 def cleanup_distillations_if_unused(collection: str, source_note_id: str) -> None:
-    """If a source note no longer has any referencers, clean up its distillation cache.
-    - If content hasn't changed since caching: keep the cache (can be reused later)
-    - If content has changed: delete the cache (it's stale)
+    """If a source note no longer has any referencers, decide whether to keep
+    or delete its distillation cache.
+
+    - Content unchanged since caching → keep (can be reused later)
+    - Content changed → delete (stale)
     """
     refs = get_referenced_by(collection, source_note_id)
     if refs:  # Still has referencers — don't clean up
         return
 
-    # No more referencers — decide whether to keep or delete cache
     ndir = _note_dir(collection, source_note_id)
     dist_path = ndir / "distillation.md"
     if not dist_path.exists():
-        return  # No cache to clean up
+        return
 
     if source_content_changed(collection, source_note_id):
         delete_distillation(collection, source_note_id)
-        logger.info("Cleared stale distillation for %s (content changed after last reference removed)", source_note_id)
+        logger.info(
+            "Cleared stale distillation for %s (content changed after last reference removed)",
+            source_note_id,
+        )
     else:
-        logger.info("Preserved distillation for %s (content unchanged, cache may be reused)", source_note_id)
+        logger.info(
+            "Preserved distillation for %s (content unchanged, cache may be reused)",
+            source_note_id,
+        )
 
 
 # ── References (injection blocks within a note) ────────────────

@@ -322,6 +322,11 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
       saveTimerRef.current = null
     }
 
+    // Snapshot the target note ID at drop time — must be captured BEFORE
+    // any await, because the user may switch notes during distillation.
+    const targetNoteId = currentNote.id
+    const targetContent = contentRef.current
+
     // Get source note title from notesList
     const sourceNote = notesList.find(n => n.id === sourceNoteId)
     const sourceTitle = sourceNote?.title || sourceNoteId
@@ -331,16 +336,20 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
 
     // Insert loading placeholder immediately
     const loadingMd = `\n\n:::distill-block{"id":"${tempBlockId}","source":"${sourceNoteId}","source-title":"${sourceTitle}","loading":true}\n⏳ Distilling content from "${sourceTitle}"...\n:::\n\n`
-    const loadingContent = contentRef.current + loadingMd
+    const loadingContent = targetContent + loadingMd
     setContent(loadingContent)
-    // Snapshot the exact content with the loading block — Tiptap round-trip
-    // drops the "loading" attr from serialized markdown, so contentRef.current
-    // may no longer match the original placeholder pattern after onUpdate fires.
     preDistillContentRef.current = loadingContent
 
     setDistilling(true)
     try {
-      const res = await distillNote(collection, currentNote.id, sourceNoteId)
+      const res = await distillNote(collection, targetNoteId, sourceNoteId)
+
+      // Guard: user switched notes during distillation — silently discard.
+      // The loading placeholder stays in the original note (harmless).
+      if (activeNoteId !== targetNoteId) {
+        preDistillContentRef.current = null
+        return
+      }
 
       // Replace loading placeholder with real content
       const attrs = JSON.stringify({
@@ -350,7 +359,6 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
       })
       const blockMd = `:::distill-block${attrs}\n${res.distilled_content}\n:::`
 
-      // Use the snapshot (not contentRef) — it still has "loading":true so the regex matches
       const loadingPattern = `:::distill-block\\{"id":"${tempBlockId}"[^}]*\\}\\n[\\s\\S]*?\\n:::`
       const newContent = (preDistillContentRef.current ?? contentRef.current).replace(
         new RegExp(loadingPattern),
@@ -360,10 +368,16 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
 
       setContent(newContent)
       setSavedContent(newContent)
-      await updateNote(collection, currentNote.id, { content: newContent })
-      await fetchNote(currentNote.id)
+      await updateNote(collection, targetNoteId, { content: newContent })
+      if (activeNoteId === targetNoteId) {
+        await fetchNote(targetNoteId)
+      }
       toast.success(`Distilled "${res.source_title}" injected`)
     } catch (err) {
+      if (activeNoteId !== targetNoteId) {
+        preDistillContentRef.current = null
+        return
+      }
       // Remove loading placeholder on error
       const src = preDistillContentRef.current ?? contentRef.current
       preDistillContentRef.current = null
@@ -376,7 +390,7 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
     } finally {
       setDistilling(false)
     }
-  }, [collection, currentNote, fetchNote, notesList])
+  }, [collection, currentNote, fetchNote, notesList, activeNoteId])
 
   // ── Distill block event listeners ─────────────────────
 
