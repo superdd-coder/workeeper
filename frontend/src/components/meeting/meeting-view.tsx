@@ -26,7 +26,7 @@ import { HotWordsSelector } from "./hot-words-selector"
 import { LanguageHintsSelector, DEFAULT_LANGUAGE_HINTS } from "./language-hints-selector"
 
 export function MeetingView() {
-  const { activeMeeting, setActiveMeeting, setSidebarView, setActiveCollection, setNavigationGuard, ingestMeetingId, ingestProgress } = useAppStore()
+  const { activeMeeting, setActiveMeeting, setSidebarView, setActiveCollection, setNavigationGuard, ingestMeetingId, ingestProgress, collections, fetchCollections } = useAppStore()
   const isIngesting = ingestMeetingId === activeMeeting && Object.values(ingestProgress).some((s) => s === "pending")
 
   // Data
@@ -116,6 +116,11 @@ export function MeetingView() {
       setMeetings(list)
     } catch { /* ignore */ }
   }, [])
+
+  // Load collections for ID -> name mapping
+  useEffect(() => {
+    fetchCollections()
+  }, [fetchCollections])
 
   // Fetch single meeting detail
   const fetchMeeting = useCallback(async (id: string) => {
@@ -532,7 +537,7 @@ export function MeetingView() {
                           setTimeout(() => window.dispatchEvent(new CustomEvent("show-meeting-log")), 100)
                         }}
                       >
-                        {col}
+                        {collections.find(c => c.id === col)?.name || col}
                       </button>
                     ))}
                   </span>

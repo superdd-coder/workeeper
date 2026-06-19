@@ -19,8 +19,14 @@ export const getHealth = () =>
 
 // ── Collections ──
 
+export interface CollectionItem {
+  id: string
+  name: string
+  points_count: number
+}
+
 export const getCollections = () =>
-  request<{ name: string; points_count: number }[]>("/collections")
+  request<CollectionItem[]>("/collections")
 
 export interface ChunkConfig {
   chunk_mode?: string
@@ -36,22 +42,28 @@ export interface ChunkConfig {
 }
 
 export const createCollection = (name: string, dimensions?: number, chunkConfig?: ChunkConfig) =>
-  request<{ message?: string; error?: string; dimensions?: number }>("/collections", {
+  request<{ id?: string; message?: string; error?: string; dimensions?: number }>("/collections", {
     method: "POST",
     body: JSON.stringify({ name, dimensions, ...chunkConfig }),
   })
 
-export const deleteCollection = (name: string) =>
-  request<{ message?: string; error?: string }>(`/collections/${name}`, {
+export const deleteCollection = (collectionId: string) =>
+  request<{ message?: string; error?: string }>(`/collections/${collectionId}`, {
     method: "DELETE",
   })
 
-export const getCollectionConfig = (name: string) =>
-  request<Record<string, unknown>>(`/collections/${name}/config`)
+export const renameCollection = (collectionId: string, newName: string) =>
+  request<{ message?: string; error?: string }>(`/collections/${collectionId}/rename`, {
+    method: "PUT",
+    body: JSON.stringify({ name: newName }),
+  })
 
-export const updateCollectionConfig = (name: string, config: Record<string, unknown>) =>
+export const getCollectionConfig = (collectionId: string) =>
+  request<Record<string, unknown>>(`/collections/${collectionId}/config`)
+
+export const updateCollectionConfig = (collectionId: string, config: Record<string, unknown>) =>
   request<{ message?: string; error?: string; config?: Record<string, unknown> }>(
-    `/collections/${name}/config`,
+    `/collections/${collectionId}/config`,
     {
       method: "PUT",
       body: JSON.stringify(config),
@@ -417,49 +429,49 @@ export interface MeetingLogItem {
   file_ids?: string[]
 }
 
-export const getCollectionSummary = (collection: string) =>
-  request<{ content: string }>(`/collections/${collection}/info/summary`)
+export const getCollectionSummary = (collectionId: string) =>
+  request<{ content: string }>(`/collections/${collectionId}/info/summary`)
     .catch((err) => {
       if (err instanceof Error && err.message.includes("404")) return null
       throw err
     })
 
-export const getProjectDescription = (collection: string) =>
-  request<{ content: string }>(`/collections/${collection}/info/project-description`)
+export const getProjectDescription = (collectionId: string) =>
+  request<{ content: string }>(`/collections/${collectionId}/info/project-description`)
     .catch((err) => {
       if (err instanceof Error && err.message.includes("404")) return null
       throw err
     })
 
-export const getCollectionConflicts = (collection: string) =>
-  request<{ conflicts: ConflictItem[] }>(`/collections/${collection}/info/conflicts`)
+export const getCollectionConflicts = (collectionId: string) =>
+  request<{ conflicts: ConflictItem[] }>(`/collections/${collectionId}/info/conflicts`)
 
-export const getDocSummary = (collection: string, source: string) =>
-  request<DocSummary>(`/collections/${collection}/info/doc-summaries/${encodeURIComponent(source)}`)
+export const getDocSummary = (collectionId: string, source: string) =>
+  request<DocSummary>(`/collections/${collectionId}/info/doc-summaries/${encodeURIComponent(source)}`)
     .catch((err) => {
       if (err instanceof Error && err.message.includes("404")) return null
       throw err
     })
 
-export const setDocSummaryInclude = (collection: string, source: string, include: boolean) =>
+export const setDocSummaryInclude = (collectionId: string, source: string, include: boolean) =>
   request<{ source: string; include_in_summary: boolean }>(
-    `/collections/${collection}/info/doc-summaries/${encodeURIComponent(source)}/include`,
+    `/collections/${collectionId}/info/doc-summaries/${encodeURIComponent(source)}/include`,
     { method: "PUT", body: JSON.stringify({ include }) }
   )
 
-export const generateDocSummary = (collection: string, source: string) =>
+export const generateDocSummary = (collectionId: string, source: string) =>
   request<DocSummary>(
-    `/collections/${collection}/info/doc-summaries/${encodeURIComponent(source)}/generate`,
+    `/collections/${collectionId}/info/doc-summaries/${encodeURIComponent(source)}/generate`,
     { method: "POST" }
   )
 
-export const triggerConsolidation = (collection: string) =>
-  request<{ message: string; task: TaskInfo }>(`/collections/${collection}/info/consolidate`, {
+export const triggerConsolidation = (collectionId: string) =>
+  request<{ message: string; task: TaskInfo }>(`/collections/${collectionId}/info/consolidate`, {
     method: "POST",
   })
 
-export const getMeetingLog = (collection: string) =>
-  request<{ meetings: MeetingLogItem[] }>(`/collections/${collection}/info/meeting-log`)
+export const getMeetingLog = (collectionId: string) =>
+  request<{ meetings: MeetingLogItem[] }>(`/collections/${collectionId}/info/meeting-log`)
 
 export interface ActiveTasksResult {
   active_tasks: Array<{ id: string; task_type: string; status: string; message: string; progress: number }>
@@ -467,8 +479,8 @@ export interface ActiveTasksResult {
   uploading: boolean
 }
 
-export const getActiveCollectionTasks = (collection: string) =>
-  request<ActiveTasksResult>(`/collections/${collection}/info/active-tasks`)
+export const getActiveCollectionTasks = (collectionId: string) =>
+  request<ActiveTasksResult>(`/collections/${collectionId}/info/active-tasks`)
 
 // ── Recall ──
 
@@ -836,6 +848,103 @@ export const testRealtimeTranscriptionProvider = (id: string) =>
     method: "POST",
   })
 
+
+// ── Notes ──
+
+export interface NoteListItem {
+  id: string
+  title: string
+  collection: string
+  created_at: string
+  updated_at: string
+  is_extracted: boolean
+  extracted_into: string[]
+}
+
+export interface NoteDetail {
+  id: string
+  title: string
+  collection: string
+  created_at: string
+  updated_at: string
+  content: string
+  references: NoteReference[]
+  is_extracted: boolean
+  extracted_into: string[]
+}
+
+export interface NoteReference {
+  block_id: string
+  source_note_id: string
+  source_title: string
+}
+
+export interface PropagationPreview {
+  origin_id: string
+  origin_title: string
+  links: PropagationLink[]
+  total_affected: number
+}
+
+export interface PropagationLink {
+  source_id: string
+  source_title: string
+  target_id: string
+  target_title: string
+}
+
+export const getNotes = (collection: string) =>
+  request<{ collection: string; notes: NoteListItem[] }>(`/notes/${encodeURIComponent(collection)}`)
+
+export const getNote = (collection: string, noteId: string) =>
+  request<NoteDetail>(`/notes/${encodeURIComponent(collection)}/${noteId}`)
+
+export const createNote = (collection: string, title: string) =>
+  request<{ id: string; title: string; collection: string; created_at: string; updated_at: string }>(
+    `/notes/${encodeURIComponent(collection)}`,
+    { method: "POST", body: JSON.stringify({ title }) }
+  )
+
+export const updateNote = (collection: string, noteId: string, data: { title?: string; content?: string }) =>
+  request<{ message: string; id: string }>(
+    `/notes/${encodeURIComponent(collection)}/${noteId}`,
+    { method: "PUT", body: JSON.stringify(data) }
+  )
+
+export const deleteNote = (collection: string, noteId: string) =>
+  request<{ message: string }>(
+    `/notes/${encodeURIComponent(collection)}/${noteId}`,
+    { method: "DELETE" }
+  )
+
+export const uploadNoteImage = async (collection: string, noteId: string, file: File) => {
+  const formData = new FormData()
+  formData.append("file", file)
+  const res = await fetch(
+    `${BASE}/notes/${encodeURIComponent(collection)}/${noteId}/images`,
+    { method: "POST", body: formData }
+  )
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Image upload failed (${res.status}): ${body}`)
+  }
+  return res.json() as Promise<{ url: string; filename: string }>
+}
+
+export const distillNote = (collection: string, targetNoteId: string, sourceNoteId: string) =>
+  request<{ message: string; block_id: string; source_note_id: string; source_title: string; distilled_content: string }>(
+    `/notes/${encodeURIComponent(collection)}/${targetNoteId}/distill`,
+    { method: "POST", body: JSON.stringify({ source_note_id: sourceNoteId }) }
+  )
+
+export const getPropagationPreview = (collection: string, noteId: string) =>
+  request<PropagationPreview>(`/notes/${encodeURIComponent(collection)}/${noteId}/propagation-preview`)
+
+export const triggerPropagation = (collection: string, noteId: string) =>
+  request<{ message: string; updated_note_ids: string[] }>(
+    `/notes/${encodeURIComponent(collection)}/${noteId}/propagate`,
+    { method: "POST" }
+  )
 
 // ── Hot Words ──
 

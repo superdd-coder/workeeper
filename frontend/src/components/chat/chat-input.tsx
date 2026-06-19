@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { useAppStore } from "@/stores/app-store"
 import { useStreamChat } from "@/hooks/use-stream"
-import { uploadFiles, getCollections } from "@/api/client"
+import { uploadFiles } from "@/api/client"
 import { toast } from "sonner"
 
 function persisted<T>(key: string, fallback: T): T {
@@ -20,7 +20,6 @@ function persisted<T>(key: string, fallback: T): T {
 export function ChatInput() {
   const [input, setInput] = useState("")
   const [showCollections, setShowCollections] = useState(false)
-  const [allCollections, setAllCollections] = useState<string[]>([])
   const [useAgent, setUseAgent] = useState(() => persisted("useAgent", true))
   const [searchMode, setSearchMode] = useState(() => persisted("searchMode", "dense"))
   const [topK, setTopK] = useState(() => persisted("topK", 5))
@@ -31,6 +30,8 @@ export function ChatInput() {
   const {
     isStreaming,
     activeCollection,
+    collections,
+    fetchCollections,
     selectedCollections,
     toggleCollection,
     activeProvider,
@@ -43,16 +44,8 @@ export function ChatInput() {
   const collectionMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const cols = await getCollections()
-        setAllCollections(cols.map(c => c.name))
-      } catch {
-        // ignore
-      }
-    }
-    load()
-  }, [])
+    fetchCollections()
+  }, [fetchCollections])
 
   // Persist chat params to localStorage (skip NaN sentinel values)
   useEffect(() => { localStorage.setItem("chat_useAgent", JSON.stringify(useAgent)) }, [useAgent])
@@ -85,7 +78,10 @@ export function ChatInput() {
     const text = input.trim()
     if (!text || isStreaming) return
     setInput("")
-    const cols = selectedCollections.length > 0 ? selectedCollections : allCollections
+    // Use IDs for API calls, fallback to all collection IDs if none selected
+    const cols = selectedCollections.length > 0
+      ? selectedCollections
+      : collections.map(c => c.id)
     await sendMessage(text, cols, activeProvider, activeModel, useAgent, searchMode, {
       top_k: isNaN(topK) ? 5 : topK,
       use_reranker: useReranker,
@@ -135,15 +131,15 @@ export function ChatInput() {
             </Button>
             {showCollections && (
               <div className="absolute z-50 bottom-full left-0 mb-1 w-56 rounded-md border bg-popover shadow-md p-2 space-y-1 max-h-60 overflow-y-auto">
-                {allCollections.map((col) => (
-                  <label key={col} className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded hover:bg-accent">
+                {collections.map((col) => (
+                  <label key={col.id} className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded hover:bg-accent">
                     <input
                       type="checkbox"
-                      checked={selectedCollections.includes(col)}
-                      onChange={() => toggleCollection(col)}
+                      checked={selectedCollections.includes(col.id)}
+                      onChange={() => toggleCollection(col.id)}
                       className="rounded"
                     />
-                    {col}
+                    {col.name}
                   </label>
                 ))}
               </div>

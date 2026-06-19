@@ -77,7 +77,11 @@ export function CreateCollectionDialog({ open, onOpenChange, onCreated }: Create
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="my-collection" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="my-collection"
+            />
           </div>
 
           <div className="space-y-1.5">

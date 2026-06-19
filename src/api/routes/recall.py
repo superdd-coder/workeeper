@@ -30,6 +30,7 @@ from src.rag.collection_utils import (
 )
 from src.rag.retriever import RetrievedChunk
 from src.services import services
+from src.collections import store as collections_store
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -209,7 +210,13 @@ def _is_specific_query(query: str) -> bool:
 @router.post("/recall/search", response_model=RecallSearchResponse)
 def recall_search(req: RecallSearchRequest):
     t0 = time.time()
-    valid_collections = [c for c in req.collections if services.db.collection_exists(c)]
+    # Resolve collections: try as ID first, fall back to name (for legacy)
+    def resolve_collection(cid: str) -> str:
+        meta = collections_store.get_collection_meta(cid)
+        return meta["id"] if meta else cid
+
+    resolved_collections = [resolve_collection(c) for c in req.collections]
+    valid_collections = [c for c in resolved_collections if services.db.collection_exists(c)]
     logger.info("Recall search: collections=%s, valid=%s, min_score=%.2f, search_mode=%s",
                 req.collections, valid_collections, req.min_score, req.search_mode)
     if not valid_collections:
@@ -332,7 +339,11 @@ def recall_benchmark(req: RecallBenchmarkRequest):
 
 @router.get("/recall/params/{collection}")
 def get_recall_params(collection: str):
-    config = services.db.get_collection_config(collection)
+    # Resolve collection: try as ID first, fall back to name (for legacy)
+    col_meta = collections_store.get_collection_meta(collection)
+    collection_id = col_meta["id"] if col_meta else collection
+
+    config = services.db.get_collection_config(collection_id)
     return {
         "search_modes": ["dense", "hybrid"],
         "max_top_k": 50,

@@ -26,6 +26,9 @@ htmlcov/
 frontend/node_modules/
 frontend/dist/
 
+# Prototype (standalone testing project)
+prototype/
+
 # OS
 .DS_Store
 

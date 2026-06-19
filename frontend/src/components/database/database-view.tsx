@@ -5,27 +5,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Database } from "lucide-react"
 import { useAppStore } from "@/stores/app-store"
-import { getCollections, getCollectionConfig, getFiles, getFileChunks, deleteDocument, uploadFiles, getTasks, clearCompletedTasks, cancelTask, retryTask, type FileListItem, type ChunkDetail, type TaskInfo } from "@/api/client"
+import { getCollectionConfig, getFiles, getFileChunks, deleteDocument, uploadFiles, getTasks, clearCompletedTasks, cancelTask, retryTask, type FileListItem, type ChunkDetail, type TaskInfo } from "@/api/client"
 import { toast } from "sonner"
 import { CollectionList } from "./collection-list"
 import { CreateCollectionDialog } from "./create-collection-dialog"
 import { DeleteCollectionDialog } from "./delete-collection-dialog"
+import { RenameCollectionDialog } from "./rename-collection-dialog"
 import { CollectionConfig } from "./collection-config"
 import { InfoPanel } from "./info-panel"
 import { FileDetailDialog } from "./file-detail-dialog"
 import { UploadSection } from "./upload-section"
 
-export interface CollectionInfoItem {
-  name: string
-  points_count: number
-  file_count?: number
-}
-
 export function DatabaseView() {
-  const { activeCollection, setActiveCollection, removeDeletedCollection, pendingCreateCollection, setPendingCreateCollection, pendingOpenFile, setPendingOpenFile } = useAppStore()
-  const [collections, setCollections] = useState<CollectionInfoItem[]>([])
+  const { activeCollection, setActiveCollection, removeDeletedCollection, pendingCreateCollection, setPendingCreateCollection, pendingOpenFile, setPendingOpenFile, collections, fetchCollections } = useAppStore()
   const [createOpen, setCreateOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [renameTarget, setRenameTarget] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("info")
   const [files, setFiles] = useState<FileListItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -74,26 +69,12 @@ export function DatabaseView() {
     }
   }, [pendingOpenFile, setPendingOpenFile])
 
-  const fetchCollections = useCallback(async () => {
-    try {
-      const items = await getCollections()
-      setCollections(items)
-    } catch {
-      // ignore
-    }
-  }, [])
-
   const fetchFiles = useCallback(async () => {
     if (!activeCollection) return
     setLoading(true)
     try {
       const res = await getFiles(activeCollection)
       setFiles(res.files)
-      setCollections((prev) =>
-        prev.map((c) =>
-          c.name === activeCollection ? { ...c, file_count: res.files.length } : c
-        )
-      )
     } catch {
       setFiles([])
     } finally {
@@ -208,6 +189,7 @@ export function DatabaseView() {
         onSelect={setActiveCollection}
         onCreate={() => setCreateOpen(true)}
         onDelete={setDeleteTarget}
+        onRename={setRenameTarget}
       />
 
       <div className="flex-1 overflow-hidden">
@@ -285,7 +267,21 @@ export function DatabaseView() {
       </div>
 
       <CreateCollectionDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={fetchCollections} />
-      <DeleteCollectionDialog name={deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)} onDeleted={() => { if (deleteTarget) removeDeletedCollection(deleteTarget); setDeleteTarget(null); fetchCollections() }} />
+      <DeleteCollectionDialog
+        collectionId={deleteTarget}
+        collectionName={deleteTarget ? collections.find(c => c.id === deleteTarget)?.name || "" : ""}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+        onDeleted={() => { if (deleteTarget) removeDeletedCollection(deleteTarget); setDeleteTarget(null); fetchCollections() }}
+      />
+      {renameTarget && (
+        <RenameCollectionDialog
+          collectionId={renameTarget}
+          currentName={collections.find(c => c.id === renameTarget)?.name || ""}
+          open={!!renameTarget}
+          onOpenChange={(v) => !v && setRenameTarget(null)}
+          onRenamed={() => { setRenameTarget(null); fetchCollections() }}
+        />
+      )}
 
       <FileDetailDialog
         collection={activeCollection}

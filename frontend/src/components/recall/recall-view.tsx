@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { useAppStore } from "@/stores/app-store"
 import {
-  getCollections, recallSearch, type RecallResult,
+  recallSearch, type RecallResult,
   getEvalCases, deleteEvalCase, generateEvalCases,
   runEval, getEvalHistory, getRerankProviders, getChunkContent,
   type EvalTestCase, type EvalReport, type RerankProvider, type ChunkContent,
@@ -24,8 +24,7 @@ import { TooltipLabel } from "@/components/shared/tooltip-label"
 // ── Search Tab (existing) ──────────────────────────────────
 
 function SearchTab() {
-  const { selectedCollections, setSelectedCollections, removeDeletedCollection } = useAppStore()
-  const [allCollections, setAllCollections] = useState<string[]>([])
+  const { selectedCollections, setSelectedCollections, collections, fetchCollections } = useAppStore()
   const [query, setQuery] = useState("")
   const [topK, setTopK] = useState("10")
   const [rerankTopK, setRerankTopK] = useState("5")
@@ -43,24 +42,9 @@ function SearchTab() {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const cols = await getCollections()
-        setAllCollections(cols.map(c => c.name))
-        for (const c of selectedCollections) {
-          if (!cols.some(col => col.name === c)) removeDeletedCollection(c)
-        }
-      } catch { /* ignore */ }
-      try {
-        const providers = await getRerankProviders()
-        setRerankProviders(providers)
-      } catch { /* ignore */ }
-    }
-    load()
-    const onFocus = () => load()
-    window.addEventListener("focus", onFocus)
-    return () => window.removeEventListener("focus", onFocus)
-  }, [])
+    fetchCollections()
+    getRerankProviders().then(setRerankProviders).catch(() => {})
+  }, [fetchCollections])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -75,20 +59,21 @@ function SearchTab() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const toggleCollection = (name: string) => {
-    const exists = selectedCollections.includes(name)
-    const next = exists ? selectedCollections.filter((c) => c !== name) : [...selectedCollections, name]
+  const toggleCollection = (id: string) => {
+    const exists = selectedCollections.includes(id)
+    const next = exists ? selectedCollections.filter((c) => c !== id) : [...selectedCollections, id]
     setSelectedCollections(next)
   }
 
   const handleSearch = async () => {
     if (!query.trim()) return
-    const collections = selectedCollections.length > 0 ? selectedCollections : ["default"]
+    // Use IDs for API calls
+    const cols = selectedCollections.length > 0 ? selectedCollections : collections.map(c => c.id)
     setResults([])
     setSearching(true)
     try {
       const res = await recallSearch({
-        query: query.trim(), collections, search_mode: searchMode,
+        query: query.trim(), collections: cols, search_mode: searchMode,
         top_k: parseInt(topK) || 10, rerank_top_k: parseInt(rerankTopK) || 5,
         use_reranker: useReranker, use_agent: useAgent,
         min_score: minScore,
@@ -130,10 +115,10 @@ function SearchTab() {
               </Button>
               {showCollections && (
                 <div ref={dropdownRef} className="fixed z-50 mt-1 w-56 rounded-md border bg-popover shadow-md p-2 space-y-1 max-h-60 overflow-y-auto" style={{ top: collectionMenuRef.current ? collectionMenuRef.current.getBoundingClientRect().bottom + 4 : 0, left: collectionMenuRef.current ? collectionMenuRef.current.getBoundingClientRect().left : 0 }}>
-                  {allCollections.map((col) => (
-                    <label key={col} className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded hover:bg-accent">
-                      <input type="checkbox" checked={selectedCollections.includes(col)} onChange={() => toggleCollection(col)} className="rounded" />
-                      {col}
+                  {collections.map((col) => (
+                    <label key={col.id} className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded hover:bg-accent">
+                      <input type="checkbox" checked={selectedCollections.includes(col.id)} onChange={() => toggleCollection(col.id)} className="rounded" />
+                      {col.name}
                     </label>
                   ))}
                 </div>
@@ -247,8 +232,7 @@ const EVAL_RUNNING_PREFIX = "eval_running_"
 const GEN_RUNNING_PREFIX = "gen_running_"
 
 function EvaluateTab() {
-  const { selectedCollections, setSelectedCollections } = useAppStore()
-  const [allCollections, setAllCollections] = useState<string[]>([])
+  const { selectedCollections, setSelectedCollections, collections, fetchCollections } = useAppStore()
   const collection = selectedCollections[0] || ""
   const [cases, setCases] = useState<EvalTestCase[]>([])
   const [loading, setLoading] = useState(false)
@@ -269,9 +253,9 @@ function EvaluateTab() {
   const autoRecovered = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    getCollections().then(cols => setAllCollections(cols.map(c => c.name))).catch(() => {})
+    fetchCollections()
     getRerankProviders().then(setEvalRerankProviders).catch(() => {})
-  }, [])
+  }, [fetchCollections])
 
   // Auto-recover in-flight eval after refresh / tab switch
   useEffect(() => {
@@ -407,8 +391,8 @@ function EvaluateTab() {
               }}
             >
               <option value="">Choose a collection...</option>
-              {allCollections.map((col) => (
-                <option key={col} value={col}>{col}</option>
+              {collections.map((col) => (
+                <option key={col.id} value={col.id}>{col.name}</option>
               ))}
             </select>
           </div>
@@ -430,8 +414,8 @@ function EvaluateTab() {
                 if (e.target.value) setSelectedCollections([e.target.value])
               }}
             >
-              {allCollections.map((col) => (
-                <option key={col} value={col}>{col}</option>
+              {collections.map((col) => (
+                <option key={col.id} value={col.id}>{col.name}</option>
               ))}
             </select>
             <div className="flex items-center gap-2">

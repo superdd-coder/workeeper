@@ -61,14 +61,26 @@ export interface LLMProvider {
   status?: "ready" | "error" | "unknown"
 }
 
+export interface CollectionItem {
+  id: string
+  name: string
+  points_count: number
+}
+
+// Import getCollections for fetchCollections action
+import { getCollections } from "@/api/client"
+
 interface AppState {
   sidebarView: SidebarView
   sidebarOpen: boolean
   setSidebarView: (view: SidebarView) => void
   toggleSidebar: () => void
 
-  activeCollection: string
-  setActiveCollection: (name: string) => void
+  activeCollection: string  // Now stores collection ID
+  setActiveCollection: (id: string) => void
+  collections: CollectionItem[]  // Cache of collection list
+  setCollections: (collections: CollectionItem[]) => void
+  fetchCollections: () => Promise<void>  // Fetch and update collections
   pendingCreateCollection: boolean
   setPendingCreateCollection: (v: boolean) => void
   pendingOpenFile: string | null
@@ -80,10 +92,10 @@ interface AppState {
   ingestProjectNames: string[]
   setIngestState: (meetingId: string | null, progress: Record<number, "pending" | "done" | "error">, names: string[]) => void
 
-  selectedCollections: string[]
-  setSelectedCollections: (names: string[]) => void
-  toggleCollection: (name: string) => void
-  removeDeletedCollection: (name: string) => void
+  selectedCollections: string[]  // Now stores collection IDs
+  setSelectedCollections: (ids: string[]) => void
+  toggleCollection: (id: string) => void
+  removeDeletedCollection: (id: string) => void
 
   activeProvider: string | null
   setActiveProvider: (id: string | null) => void
@@ -129,7 +141,17 @@ export const useAppStore = create<AppState>((set) => ({
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
 
   activeCollection: "",
-  setActiveCollection: (name) => set({ activeCollection: name }),
+  setActiveCollection: (id) => set({ activeCollection: id }),
+  collections: [],
+  setCollections: (collections) => set({ collections }),
+  fetchCollections: async () => {
+    try {
+      const items = await getCollections()
+      set({ collections: items })
+    } catch {
+      // ignore
+    }
+  },
   pendingCreateCollection: false,
   setPendingCreateCollection: (v) => set({ pendingCreateCollection: v }),
   pendingOpenFile: null,
@@ -145,19 +167,25 @@ export const useAppStore = create<AppState>((set) => ({
   }),
 
   selectedCollections: loadPersisted<string[]>("selectedCollections", []),
-  setSelectedCollections: (names) => set({ selectedCollections: names }),
-  toggleCollection: (name) =>
+  setSelectedCollections: (ids) => {
+    // Persist to localStorage
+    localStorage.setItem("rag_selectedCollections", JSON.stringify(ids))
+    set({ selectedCollections: ids })
+  },
+  toggleCollection: (id) =>
     set((s) => {
-      const exists = s.selectedCollections.includes(name)
+      const exists = s.selectedCollections.includes(id)
       const next = exists
-        ? s.selectedCollections.filter((c) => c !== name)
-        : [...s.selectedCollections, name]
+        ? s.selectedCollections.filter((c) => c !== id)
+        : [...s.selectedCollections, id]
+      // Persist to localStorage
+      localStorage.setItem("rag_selectedCollections", JSON.stringify(next))
       return { selectedCollections: next }
     }),
-  removeDeletedCollection: (name) =>
+  removeDeletedCollection: (id) =>
     set((s) => ({
-      selectedCollections: s.selectedCollections.filter((c) => c !== name),
-      activeCollection: s.activeCollection === name ? "" : s.activeCollection,
+      selectedCollections: s.selectedCollections.filter((c) => c !== id),
+      activeCollection: s.activeCollection === id ? "" : s.activeCollection,
     })),
 
   activeProvider: loadPersisted<string | null>("activeProvider", null),
@@ -220,6 +248,15 @@ export const useAppStore = create<AppState>((set) => ({
   navigationGuard: null,
   setNavigationGuard: (guard) => set({ navigationGuard: guard }),
 }))
+
+// Helper functions to get collection by id or name
+export function getCollectionById(id: string): CollectionItem | undefined {
+  return useAppStore.getState().collections.find(c => c.id === id)
+}
+
+export function getCollectionByName(name: string): CollectionItem | undefined {
+  return useAppStore.getState().collections.find(c => c.name === name)
+}
 
 // Persist selected chat params to localStorage (debounced to avoid writing on every streaming token)
 let _persistTimer: ReturnType<typeof setTimeout> | null = null

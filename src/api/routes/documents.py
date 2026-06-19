@@ -12,6 +12,7 @@ from src.parsers import parse_directory
 from src.tasks import task_manager
 from src.tasks.handlers import consolidate_handler, doc_summary_handler, upload_handler
 from src.rag.summary_manager import SummaryManager
+from src.collections import store as collection_store
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,12 @@ async def upload_document(
     collection: str = "default",
 ):
     """上传文件 - 异步队列处理"""
+    # Resolve collection: try as ID first, fall back to name (for legacy)
+    col_meta = collection_store.get_collection_meta(collection)
+    collection_id = col_meta["id"] if col_meta else collection
+
     # Check allowed file types for this collection
-    col_config = services.db.get_collection_config(collection) if services.db.collection_exists(collection) else {}
+    col_config = services.db.get_collection_config(collection_id) if services.db.collection_exists(collection_id) else {}
     allowed = col_config.get("allowed_file_types")
     if allowed:
         rejected = []
@@ -66,7 +71,7 @@ async def upload_document(
             filename=safe_name,
             task_type="upload",
             file_path=str(save_path),
-            collection=collection,
+            collection=collection_id,
             filename_param=safe_name,
         )
         tasks.append(task.to_dict())
@@ -80,15 +85,21 @@ async def upload_document(
 @router.get("/documents/tasks")
 async def get_tasks(collection: str | None = None):
     """获取任务状态，可按collection过滤"""
-    tasks = task_manager.get_all_tasks(collection)
+    # Resolve collection ID if needed
+    collection_id = None
+    if collection:
+        col_meta = collection_store.get_collection_meta(collection)
+        collection_id = col_meta["id"] if col_meta else collection
+
+    tasks = task_manager.get_all_tasks(collection_id)
     result = []
     for t in tasks:
         ttype, _ = task_manager._task_args.get(t.id, ("unknown", {}))
         result.append(t.to_dict_with_type(ttype))
     return {
         "tasks": result,
-        "pending": len(task_manager.get_pending_tasks(collection)),
-        "processing": len(task_manager.get_processing_tasks(collection)),
+        "pending": len(task_manager.get_pending_tasks(collection_id)),
+        "processing": len(task_manager.get_processing_tasks(collection_id)),
     }
 
 
@@ -131,8 +142,12 @@ async def upload_folder(
     collection: str = "default",
 ):
     """上传文件夹 - 异步队列处理"""
-    if not services.db.collection_exists(collection):
-        services.db.create_collection(collection, vector_size=services.embedding.dimensions)
+    # Resolve collection: try as ID first, fall back to name (for legacy)
+    col_meta = collection_store.get_collection_meta(collection)
+    collection_id = col_meta["id"] if col_meta else collection
+
+    if not services.db.collection_exists(collection_id):
+        services.db.create_collection(collection_id, vector_size=services.embedding.dimensions)
 
     folder = Path(path)
     if not folder.is_dir():
@@ -146,7 +161,7 @@ async def upload_folder(
             filename=doc.source_path,
             task_type="upload",
             file_path=doc.source_path,
-            collection=collection,
+            collection=collection_id,
             filename_param=doc.source_path,
         )
         tasks.append(task.to_dict())
@@ -160,8 +175,12 @@ async def upload_folder(
 
 @router.delete("/documents/{collection}/{doc_source:path}")
 async def delete_document(collection: str, doc_source: str):
-    logger.info("[DELETE] Deleting document '%s' from collection='%s'", doc_source, collection)
-    services.db.delete_by_filter(collection, key="source", value=doc_source)
+    # Resolve collection: try as ID first, fall back to name (for legacy)
+    col_meta = collection_store.get_collection_meta(collection)
+    collection_id = col_meta["id"] if col_meta else collection
+
+    logger.info("[DELETE] Deleting document '%s' from collection='%s'", doc_source, collection_id)
+    services.db.delete_by_filter(collection_id, key="source", value=doc_source)
     logger.info("[DELETE] Chunks deleted from Qdrant")
 
     # Delete the source file from uploads
@@ -174,7 +193,7 @@ async def delete_document(collection: str, doc_source: str):
     try:
         logger.info("[DELETE] Cleaning up doc_summary for '%s'", doc_source)
         sm = _get_summary_manager()
-        sm.delete_doc_summary(collection, doc_source)
+        sm.delete_doc_summary(collection_id, doc_source)
         logger.info("[DELETE] Doc summary cleaned up")
     except Exception as e:
         logger.warning("[DELETE] Doc summary cleanup failed (non-fatal): %s", e)
@@ -230,24 +249,24 @@ async def delete_document(collection: str, doc_source: str):
 
     # Increment summary change counter
     try:
-        col_config = services.db.get_collection_config(collection)
+        col_config = services.db.get_collection_config(collection_id)
         counter = col_config.get("summary_change_counter", 0) + 1
         threshold = col_config.get("summary_consolidate_threshold", 10)
-        services.db.update_collection_config(collection, {"summary_change_counter": counter})
+        services.db.update_collection_config(collection_id, {"summary_change_counter": counter})
         logger.info("[DELETE] summary_change_counter updated to %d (threshold=%d)", counter, threshold)
 
         # Auto-trigger consolidation when threshold is reached
         if counter >= threshold:
             logger.info("[DELETE] Counter %d >= threshold %d, triggering consolidation", counter, threshold)
             task_manager.create_task(
-                filename=f"consolidate:{collection}",
+                filename=f"consolidate:{collection_id}",
                 task_type="consolidate",
-                collection=collection,
+                collection=collection_id,
             )
     except Exception as e:
         logger.warning("[DELETE] Counter update failed (non-fatal): %s", e)
 
-    return {"message": f"Deleted chunks from {doc_source} in {collection}"}
+    return {"message": f"Deleted chunks from {doc_source} in {collection_id}"}
 
 
 @router.get("/documents/preview/{filename:path}")

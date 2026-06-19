@@ -19,6 +19,7 @@ from src.rag.collection_utils import (
     retrieve_standard,
 )
 from src.rag.agent import AgenticRAG, AgentResult
+from src.collections import store as collections_store
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -86,18 +87,25 @@ def _resolve_llm(req: QueryRequest) -> tuple:
 @router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest):
     try:
-        if not services.db.collection_exists(req.collection):
+        # Resolve collection: try as ID first, fall back to name (for legacy)
+        def resolve_collection(cid: str) -> str:
+            meta = collections_store.get_collection_meta(cid)
+            return meta["id"] if meta else cid
+
+        collection = resolve_collection(req.collection)
+        target_collections = [resolve_collection(c) for c in (req.collections or [req.collection])]
+
+        if not services.db.collection_exists(collection):
             return QueryResponse(
                 answer=f"Collection '{req.collection}' does not exist. Please create it first.",
                 sources=[], iterations=0, query_used=req.question,
             )
 
-        col_config = services.db.get_collection_config(req.collection)
+        col_config = services.db.get_collection_config(collection)
         params = _resolve_params(req, col_config)
         llm, provider_info, temperature = _resolve_llm(req)
-        target_collections = req.collections or [req.collection]
         embedding_overrides = get_embedding_overrides(target_collections)
-        col_embedding = embedding_overrides.get(req.collection) or next(iter(embedding_overrides.values()))
+        col_embedding = embedding_overrides.get(collection) or next(iter(embedding_overrides.values()))
 
         logger.info("Query: collections=%s, min_score=%.2f, search_mode=%s",
                      target_collections, params["min_score"], params["search_mode"])
@@ -163,16 +171,23 @@ async def query_stream(req: QueryRequest):
 
     def generate():
         try:
-            if not services.db.collection_exists(req.collection):
+            # Resolve collection: try as ID first, fall back to name (for legacy)
+            def resolve_collection(cid: str) -> str:
+                meta = collections_store.get_collection_meta(cid)
+                return meta["id"] if meta else cid
+
+            collection = resolve_collection(req.collection)
+            target_collections = [resolve_collection(c) for c in (req.collections or [req.collection])]
+
+            if not services.db.collection_exists(collection):
                 yield f"data: {json.dumps({'type': 'error', 'content': f'Collection {req.collection} does not exist'})}\n\n"
                 return
 
-            col_config = services.db.get_collection_config(req.collection)
+            col_config = services.db.get_collection_config(collection)
             params = _resolve_params(req, col_config)
             llm, provider_info, temperature = _resolve_llm(req)
-            target_collections = req.collections or [req.collection]
             embedding_overrides = get_embedding_overrides(target_collections)
-            col_embedding = embedding_overrides.get(req.collection) or next(iter(embedding_overrides.values()))
+            col_embedding = embedding_overrides.get(collection) or next(iter(embedding_overrides.values()))
 
             logger.info("Query stream: collections=%s, min_score=%.2f, search_mode=%s",
                          target_collections, params["min_score"], params["search_mode"])

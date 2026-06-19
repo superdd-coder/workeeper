@@ -9,7 +9,7 @@ import sys
 import httpx
 
 TEST_PORT = os.environ.get("WORKEEPER_API_PORT", "18900")
-BASE = f"http://localhost:{TEST_PORT}/api"
+BASE = f"http://127.0.0.1:{TEST_PORT}/api"
 TIMEOUT = 30
 PASS = 0
 FAIL = 0
@@ -45,7 +45,7 @@ def test(label: str):
 
 def test_health():
     with test("Health"):
-        r = httpx.get(f"http://localhost:{TEST_PORT}/health", timeout=TIMEOUT)
+        r = httpx.get(f"http://127.0.0.1:{TEST_PORT}/health", timeout=TIMEOUT)
         if r.status_code == 200 and r.json().get("status") == "ok":
             ok("GET /health")
         else:
@@ -56,6 +56,7 @@ def test_health():
 
 def test_collections():
     test_col = "__test_collection__"
+    col_id = None
 
     with test("Collections"):
         # List
@@ -68,7 +69,8 @@ def test_collections():
 
         # Create
         r = httpx.post(f"{BASE}/collections", json={"name": test_col}, timeout=TIMEOUT)
-        if r.status_code == 200 and "message" in r.json():
+        if r.status_code == 200 and "id" in r.json():
+            col_id = r.json()["id"]
             ok("POST /collections (create)")
         else:
             fail("POST /collections", r.text[:100])
@@ -76,28 +78,30 @@ def test_collections():
 
         # List (should include new)
         r = httpx.get(f"{BASE}/collections", timeout=TIMEOUT)
-        if test_col in r.json():
+        found = any(c["id"] == col_id and c["name"] == test_col for c in r.json())
+        if found:
             ok("Collection appears in list")
         else:
             fail("Collection appears in list", r.text[:100])
 
-        # Info
-        r = httpx.get(f"{BASE}/collections/{test_col}/info", timeout=TIMEOUT)
-        if r.status_code == 200 and r.json().get("name") == test_col:
-            ok("GET /collections/{name}/info")
+        # Info (using ID)
+        r = httpx.get(f"{BASE}/collections/{col_id}/info", timeout=TIMEOUT)
+        if r.status_code == 200 and r.json().get("name") == col_id:
+            ok("GET /collections/{id}/info")
         else:
-            fail("GET /collections/{name}/info", r.text[:100])
+            fail("GET /collections/{id}/info", r.text[:100])
 
-        # Delete
-        r = httpx.delete(f"{BASE}/collections/{test_col}", timeout=TIMEOUT)
+        # Delete (using ID)
+        r = httpx.delete(f"{BASE}/collections/{col_id}", timeout=TIMEOUT)
         if r.status_code == 200 and "message" in r.json():
-            ok("DELETE /collections/{name}")
+            ok("DELETE /collections/{id}")
         else:
-            fail("DELETE /collections/{name}", r.text[:100])
+            fail("DELETE /collections/{id}", r.text[:100])
 
         # Verify deleted
         r = httpx.get(f"{BASE}/collections", timeout=TIMEOUT)
-        if test_col not in r.json():
+        found = any(c["id"] == col_id for c in r.json())
+        if not found:
             ok("Collection removed from list")
         else:
             fail("Collection removed from list")
@@ -140,12 +144,12 @@ def test_upload():
                     params={"collection": "default"},
                     timeout=60,
                 )
-            if r.status_code == 200 and isinstance(r.json(), list):
-                resp = r.json()[0]
-                if resp.get("chunks_count", 0) > 0:
-                    ok(f"POST /documents/upload ({resp['chunks_count']} chunks)")
+            if r.status_code == 200:
+                data = r.json()
+                if "tasks" in data and len(data["tasks"]) > 0:
+                    ok(f"POST /documents/upload (queued {len(data['tasks'])} tasks)")
                 else:
-                    fail("POST /documents/upload", "0 chunks")
+                    fail("POST /documents/upload", "No tasks returned")
             else:
                 fail("POST /documents/upload", r.text[:200])
         finally:
@@ -289,9 +293,9 @@ def main():
     print("=" * 50)
 
     try:
-        httpx.get(f"http://localhost:{TEST_PORT}/health", timeout=TIMEOUT)
+        httpx.get(f"http://127.0.0.1:{TEST_PORT}/health", timeout=TIMEOUT)
     except Exception:
-        print(f"\nERROR: API server not reachable at http://localhost:{TEST_PORT}")
+        print(f"\nERROR: API server not reachable at http://127.0.0.1:{TEST_PORT}")
         print("Start the server first: docker compose up -d app")
         sys.exit(1)
 

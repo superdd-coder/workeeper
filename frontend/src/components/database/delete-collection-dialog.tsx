@@ -6,20 +6,21 @@ import { deleteCollection } from "@/api/client"
 import { toast } from "sonner"
 
 interface DeleteCollectionDialogProps {
-  name: string | null
+  collectionId: string | null
+  collectionName: string
   onOpenChange: (open: boolean) => void
   onDeleted: () => void
 }
 
-export function DeleteCollectionDialog({ name, onOpenChange, onDeleted }: DeleteCollectionDialogProps) {
+export function DeleteCollectionDialog({ collectionId, collectionName, onOpenChange, onDeleted }: DeleteCollectionDialogProps) {
   const [confirmName, setConfirmName] = useState("")
   const [deleting, setDeleting] = useState(false)
 
   const handleDelete = async () => {
-    if (!name || confirmName !== name) return
+    if (!collectionId || confirmName !== collectionName) return
     setDeleting(true)
     try {
-      const res = await deleteCollection(name)
+      const res = await deleteCollection(collectionId)
       if (res.error) toast.error(res.error)
       else {
         toast.success(res.message || "Collection deleted")
@@ -34,7 +35,7 @@ export function DeleteCollectionDialog({ name, onOpenChange, onDeleted }: Delete
   }
 
   return (
-    <Dialog open={!!name} onOpenChange={(v) => { if (!v) { setConfirmName(""); onOpenChange(false) } }}>
+    <Dialog open={!!collectionId} onOpenChange={(v) => { if (!v) { setConfirmName(""); onOpenChange(false) } }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Delete Collection</DialogTitle>
@@ -42,7 +43,7 @@ export function DeleteCollectionDialog({ name, onOpenChange, onDeleted }: Delete
 
         <div className="space-y-4 py-2">
           <p className="text-sm text-muted-foreground">
-            Type <span className="font-mono font-medium text-foreground">{name}</span> to confirm deletion.
+            Type <span className="font-mono font-medium text-foreground">{collectionName}</span> to confirm deletion.
           </p>
           <Input
             value={confirmName}
@@ -56,7 +57,7 @@ export function DeleteCollectionDialog({ name, onOpenChange, onDeleted }: Delete
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={confirmName !== name || deleting}
+            disabled={confirmName !== collectionName || deleting}
           >
             {deleting ? "Deleting..." : "Delete"}
           </Button>

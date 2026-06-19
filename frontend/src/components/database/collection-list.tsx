@@ -1,18 +1,19 @@
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { CollectionInfoItem } from "./database-view"
+import type { CollectionItem } from "@/stores/app-store"
 
 interface CollectionListProps {
-  collections: CollectionInfoItem[]
-  activeCollection: string
-  onSelect: (name: string) => void
+  collections: CollectionItem[]
+  activeCollection: string  // Now stores ID
+  onSelect: (id: string) => void
   onCreate: () => void
-  onDelete: (name: string) => void
+  onDelete: (id: string) => void
+  onRename: (id: string) => void
 }
 
-export function CollectionList({ collections, activeCollection, onSelect, onCreate, onDelete }: CollectionListProps) {
+export function CollectionList({ collections, activeCollection, onSelect, onCreate, onDelete, onRename }: CollectionListProps) {
   return (
     <div className="w-56 border-r border-border bg-sidebar-background flex flex-col shrink-0">
       <div className="flex items-center justify-between p-3 border-b border-border">
@@ -25,20 +26,26 @@ export function CollectionList({ collections, activeCollection, onSelect, onCrea
         <div className="p-2 space-y-1">
           {collections.map((col) => (
             <div
-              key={col.name}
+              key={col.id}
               className={cn(
                 "group flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-accent transition-colors",
-                activeCollection === col.name && "bg-accent font-medium"
+                activeCollection === col.id && "bg-accent font-medium"
               )}
-              onClick={() => onSelect(col.name)}
+              onClick={() => onSelect(col.id)}
             >
               <span className="flex-1 truncate">{col.name}</span>
               {col.points_count > 0 && (
                 <span className="text-xs text-muted-foreground">{col.points_count}</span>
               )}
               <button
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                onClick={(e) => { e.stopPropagation(); onRename(col.id) }}
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+              <button
                 className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(col.name) }}
+                onClick={(e) => { e.stopPropagation(); onDelete(col.id) }}
               >
                 <Trash2 className="h-3 w-3" />
               </button>

@@ -12,7 +12,6 @@ import {
   recommendCollectionsForText,
   allocateMulti,
   deleteAllAllocations,
-  getCollections,
   type ProjectSplit,
   type CollectionRecommendation,
 } from "@/api/client"
@@ -38,13 +37,12 @@ export function MultiIngestDialog({ open, onOpenChange, meetingId, isReingest, a
   const [error, setError] = useState<string | null>(null)
   const [projects, setProjects] = useState<ProjectSplit[]>([])
   const [projectRecs, setProjectRecs] = useState<Record<number, CollectionRecommendation[]>>({})
-  const [allCollections, setAllCollections] = useState<string[]>([])
   const [selections, setSelections] = useState<Record<number, SelectionState>>({})
   const [currentAllocations, setCurrentAllocations] = useState<Record<number, string>>({})
   const [activeTab, setActiveTab] = useState("0")
 
   // Use store for ingest progress (persists across dialog open/close)
-  const { ingestMeetingId, ingestProgress, ingestProjectNames, setIngestState } = useAppStore()
+  const { ingestMeetingId, ingestProgress, ingestProjectNames, setIngestState, collections, fetchCollections } = useAppStore()
   const isIngesting = ingestMeetingId === meetingId && Object.values(ingestProgress).some((s) => s === "pending")
   const isDone = ingestMeetingId === meetingId && Object.keys(ingestProgress).length > 0 && Object.values(ingestProgress).every((s) => s === "done")
 
@@ -66,12 +64,11 @@ export function MultiIngestDialog({ open, onOpenChange, meetingId, isReingest, a
     setError(null)
     try {
       // Step 1: Split and load collections in parallel
-      const [splitRes, collRes] = await Promise.all([
+      const [splitRes] = await Promise.all([
         splitMeetingByProject(meetingId),
-        getCollections(),
+        fetchCollections(),
       ])
       setProjects(splitRes.projects)
-      setAllCollections(collRes.map(c => c.name))
 
       // Step 2: Recommend per project in parallel (use detail only for matching)
       const projectTexts = splitRes.projects.map((p) => p.detail || "")
@@ -291,8 +288,8 @@ export function MultiIngestDialog({ open, onOpenChange, meetingId, isReingest, a
                       }}
                     >
                       <option value="" disabled>Select project...</option>
-                      {allCollections.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                      {collections.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                       <option value="__CREATE_NEW__">+ Create New Project</option>
                     </select>

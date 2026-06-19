@@ -18,6 +18,7 @@ import {
   type MeetingLogItem,
 } from "@/api/client"
 import { ConflictViewerDialog } from "./conflict-viewer-dialog"
+import { NotesCard } from "./notes-card"
 
 interface InfoPanelProps {
   collection: string
@@ -312,6 +313,11 @@ export function InfoPanel({ collection }: InfoPanelProps) {
           )}
         </CardContent>
       </Card>
+
+      <Separator />
+
+      {/* Notes Section */}
+      <NotesCard collection={collection} />
 
       <Separator />
 
