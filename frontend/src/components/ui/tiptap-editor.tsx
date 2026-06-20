@@ -301,6 +301,83 @@ const ResizableImage = Node.create({
         captionEl.textContent = text || ""
       }
 
+      // Inline caption editor — mounted on document.body, positioned over
+      // the caption area. Kept completely outside ProseMirror's DOM so no
+      // mutations trigger nodeView destruction.
+      let inlineEditor: HTMLInputElement | null = null
+      const showInlineEditor = (currentAlt: string) => {
+        if (inlineEditor) inlineEditor.remove()
+        const r = captionEl.getBoundingClientRect()
+        inlineEditor = document.createElement("input")
+        inlineEditor.type = "text"
+        inlineEditor.value = currentAlt
+        inlineEditor.placeholder = "Image caption..."
+        inlineEditor.style.cssText = `
+          position: fixed;
+          left: ${r.left}px;
+          top: ${r.top}px;
+          width: ${r.width}px;
+          height: ${r.height}px;
+          font-size: 13px;
+          text-align: center;
+          border: 1px solid #3b82f6;
+          border-radius: 3px;
+          padding: 0 4px;
+          outline: none;
+          box-sizing: border-box;
+          font-style: italic;
+          color: #333;
+          background: white;
+          z-index: 10001;
+        `
+        document.body.appendChild(inlineEditor)
+        inlineEditor.focus()
+        inlineEditor.select()
+      }
+
+      const hideInlineEditor = () => {
+        if (inlineEditor) {
+          inlineEditor.remove()
+          inlineEditor = null
+        }
+      }
+
+      // Persist edited caption to node attrs, then update captionEl
+      const commitCaption = (val: string) => {
+        hideInlineEditor()
+        // Update captionEl immediately — don't wait for ProseMirror
+        // update() cycle. setNodeMarkup dispatches a transaction that
+        // calls update(), but the inline element positioning depends
+        // on captionEl being in sync.
+        setCaption(val || "")
+        if (typeof getPos === "function") {
+          const pos = getPos()
+          if (pos !== undefined && pos !== null) {
+            const { tr } = editor.state
+            const nodeAtPos = editor.state.doc.nodeAt(pos)
+            if (nodeAtPos) {
+              tr.setNodeMarkup(pos, undefined, {
+                ...nodeAtPos.attrs,
+                alt: val,
+              })
+              editor.view.dispatch(tr)
+            }
+          }
+        }
+      }
+
+      // Reposition inline editor on scroll/resize
+      const repositionEditor = () => {
+        if (!inlineEditor) return
+        const r = captionEl.getBoundingClientRect()
+        inlineEditor.style.left = `${r.left}px`
+        inlineEditor.style.top = `${r.top}px`
+        inlineEditor.style.width = `${r.width}px`
+        inlineEditor.style.height = `${r.height}px`
+      }
+      window.addEventListener("scroll", repositionEditor, true)
+      window.addEventListener("resize", repositionEditor)
+
       // Show resize handles on hover
       let resizeHandle: HTMLElement | null = null
       let isResizing = false
@@ -353,6 +430,29 @@ const ResizableImage = Node.create({
           img.style.boxShadow = ""
         }
       })
+
+      // Clean up inline editor when window unloads
+      window.addEventListener("beforeunload", hideInlineEditor)
+
+      // Listen for caption:edit custom event from the floating menu
+      container.addEventListener("caption:edit", ((e: CustomEvent) => {
+        const alt = e.detail?.alt ?? ""
+        showInlineEditor(alt)
+        if (inlineEditor) {
+          let saved = false
+          const save = () => {
+            if (saved) return
+            saved = true
+            const val = inlineEditor?.value.trim() ?? ""
+            commitCaption(val)
+          }
+          inlineEditor.addEventListener("blur", () => setTimeout(save, 100))
+          inlineEditor.addEventListener("keydown", (ke: KeyboardEvent) => {
+            if (ke.key === "Enter") { ke.preventDefault(); save() }
+            if (ke.key === "Escape") { saved = true; hideInlineEditor() }
+          })
+        }
+      }) as EventListener)
 
       // Resize functionality — percentage-based width
       const getEditorContentWidth = (): number => {
@@ -487,7 +587,8 @@ const ResizableImage = Node.create({
             max-width: 100%;
             margin: 8px ${mr} 8px ${ml};
           `
-          // Refresh caption
+          // Refresh caption — ensure captionEl stays in sync even if
+          // commitCaption() already updated it before ProseMirror's update() cycle.
           setCaption(updatedNode.attrs.alt || "")
           return true
         },
@@ -607,46 +708,13 @@ function showImageFloatingMenu(
     e.stopPropagation()
     menu.remove() // close floating menu
 
-    // Make the container's caption element directly editable.
-    // No separate input/prompt — just click the text and type.
-    const captionEl = container.querySelector(".image-caption") as HTMLElement | null
-    if (!captionEl) return
+    // Read current caption from attrs (fresh from doc, not stale closure)
+    const currentAlt = attrs.alt || ""
 
-    captionEl.contentEditable = "true"
-    captionEl.focus()
-    // Place cursor at end
-    const sel = window.getSelection()
-    if (sel) {
-      sel.selectAllChildren(captionEl)
-      sel.collapseToEnd()
-    }
-
-    const save = () => {
-      captionEl.contentEditable = "false"
-      const val = captionEl.textContent?.trim() ?? ""
-      onUpdate({ alt: val })
-    }
-
-    const onBlur = () => {
-      save()
-      captionEl.removeEventListener("blur", onBlur)
-    }
-    captionEl.addEventListener("blur", onBlur)
-
-    const onKey = (ke: KeyboardEvent) => {
-      if (ke.key === "Enter") {
-        ke.preventDefault()
-        captionEl.blur() // triggers save via blur
-      }
-      if (ke.key === "Escape") {
-        // Revert and exit
-        captionEl.textContent = attrs.alt || ""
-        captionEl.contentEditable = "false"
-        captionEl.removeEventListener("blur", onBlur)
-        captionEl.removeEventListener("keydown", onKey)
-      }
-    }
-    captionEl.addEventListener("keydown", onKey)
+    // Dispatch a custom event to the container so the nodeView can show
+    // its inline editor. This keeps the input completely outside ProseMirror's DOM.
+    const ev = new CustomEvent("caption:edit", { bubbles: false, detail: { alt: currentAlt } })
+    container.dispatchEvent(ev)
   })
   menu.appendChild(captionBtn)
 
