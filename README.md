@@ -113,6 +113,19 @@ Chat with your project data across collections. The Agentic RAG pipeline handles
 
 ![Settings](screenshots/setting.jpg)
 
+### Collection Notes
+
+SinkDuce includes a built-in WYSIWYG note editor within each collection, allowing you to draft, organize, and cross-reference notes alongside your indexed documents.
+
+- **Rich text editor** — full WYSIWYG editing with markdown support (headings, tables, task lists, code blocks, images, YouTube embeds)
+- **Drag-to-distill** — drag any collection document onto a note to automatically generate an AI-summarized "distill block" with the document's key points
+- **Image support** — paste, drag-and-drop, or upload images with resize (percentage-based), alignment (left/center/right), and inline captions
+- **Import/Export** — import `.md` files as new notes, export notes as markdown files
+- **Propagation** — when a source note is updated, push changes to all downstream notes that reference it via distill blocks
+- **Side-by-side view** — see your note alongside its references and backlinks in a 3-panel layout
+
+![Notes](screenshots/notes.jpg)
+
 ## Architecture
 
 ```
