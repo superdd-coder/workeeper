@@ -1,10 +1,11 @@
 # Stage 1: Build frontend
 FROM node:20-slim AS frontend
+RUN npm install -g pnpm@10
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+COPY frontend/pnpm-lock.yaml frontend/package.json ./
+RUN pnpm install --frozen-lockfile
 COPY frontend/ .
-RUN npm run build
+RUN pnpm run build
 
 # Stage 2: Python app
 FROM python:3.11-slim
