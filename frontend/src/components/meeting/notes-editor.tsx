@@ -15,10 +15,7 @@ interface NotesEditorProps {
   summary: string | null
   todos: TodoItem[] | null
   hasTranscript: boolean
-  generating: boolean
-  onSaveNotes: (content: string) => void
-  onDiscardNotes: () => void
-  onGenerate: () => void
+  generating: boolean  onGenerate: () => void
   onRegenerate: () => void
   onUpdateGenerated: (data: { summary?: string; todos?: TodoItem[] }) => void
   onNotesUploaded: (content: string) => void
@@ -34,10 +31,7 @@ export function NotesEditor({
   summary,
   todos,
   hasTranscript,
-  generating,
-  onSaveNotes,
-  onDiscardNotes,
-  onGenerate,
+  generating,  onGenerate,
   onRegenerate,
   onUpdateGenerated,
   onNotesUploaded,

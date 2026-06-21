@@ -1,5 +1,6 @@
 import { useRef } from "react"
 import { Progress } from "@/components/ui/progress"
+import { Clock, Loader2, CheckCircle2, XCircle, StopCircle, RefreshCw } from "lucide-react"
 import { type TaskInfo } from "@/api/client"
 
 interface UploadSectionProps {

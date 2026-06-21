@@ -5,7 +5,7 @@ import { useAppStore } from "@/stores/app-store"
 import { getHealth } from "@/api/client"
 
 export function Header() {
-  const { isOnline, setOnline, logPanelOpen, toggleLogPanel } = useAppStore()
+  const { isOnline, setOnline, toggleLogPanel } = useAppStore()
 
   useEffect(() => {
     const check = async () => {
