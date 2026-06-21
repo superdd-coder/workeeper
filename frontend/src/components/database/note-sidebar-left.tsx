@@ -20,7 +20,7 @@ export function NoteSidebarLeft({
 }: NoteSidebarLeftProps) {
   return (
     <div className="w-56 border-r flex flex-col shrink-0 bg-muted/30">
-      <div className="px-3 py-2 border-b flex items-center justify-between">
+      <div className="px-3 h-9 border-b flex items-center justify-between shrink-0">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Notes
         </span>
