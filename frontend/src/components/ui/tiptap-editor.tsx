@@ -1418,6 +1418,386 @@ function showTableContextMenu(event: MouseEvent, editor: any) {
 }
 
 // ──────────────────────────────────────────────
+// Table Floating Menu (bubble menu)
+// ──────────────────────────────────────────────
+function showTableFloatingMenu(table: HTMLElement, editor: any) {
+  const existing = document.getElementById("table-floating-menu")
+  if (existing) existing.remove()
+
+  const menu = document.createElement("div")
+  menu.id = "table-floating-menu"
+  menu.style.cssText = `
+    position: absolute; top: -44px; left: 0; transform: none;
+    background: #1e1e1e; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    padding: 6px; display: flex; gap: 4px; z-index: 100; white-space: nowrap;
+    align-items: center;
+  `
+
+  // ★ KEY FIX: prevent mousedown from stealing focus out of ProseMirror.
+  // Without this, clicking a button causes the browser to blur the editor,
+  // so editor.chain().focus() cannot restore a valid table selection.
+  // Exception: <input> elements need focus for typing.
+  menu.addEventListener("mousedown", (e) => {
+    if ((e.target as HTMLElement).tagName !== "INPUT") e.preventDefault()
+  })
+
+  const btnStyle = `
+    padding: 5px 7px; border: none; background: transparent;
+    border-radius: 4px; cursor: pointer; color: white;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; font-size: 14px;
+  `
+  const hover = (btn: HTMLButtonElement) => {
+    btn.addEventListener("mouseenter", () => { btn.style.background = "rgba(255,255,255,0.15)" })
+    btn.addEventListener("mouseleave", () => { btn.style.background = "transparent" })
+  }
+
+  const makeBtn = (title: string, svg: string, action: () => void) => {
+    const b = document.createElement("button")
+    b.innerHTML = svg
+    b.title = title
+    b.style.cssText = btnStyle
+    hover(b)
+    b.addEventListener("click", (e) => { e.stopPropagation(); action() })
+    return b
+  }
+
+  const makeDivider = () => {
+    const d = document.createElement("div")
+    d.style.cssText = `width: 1px; background: rgba(255,255,255,0.2); margin: 2px; height: 22px;`
+    return d
+  }
+
+  // Row buttons
+  menu.appendChild(makeBtn("Insert row above",
+    `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M8 1v3M5 1l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="6" width="12" height="3" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/><rect x="2" y="11" width="12" height="3" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/></svg>`,
+    () => editor.chain().focus().addRowBefore().run()))
+  menu.appendChild(makeBtn("Insert row below",
+    `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12h12M8 15v-3M5 15l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="2" width="12" height="3" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/><rect x="2" y="7" width="12" height="3" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/></svg>`,
+    () => editor.chain().focus().addRowAfter().run()))
+
+  menu.appendChild(makeDivider())
+
+  // Column buttons
+  menu.appendChild(makeBtn("Insert column left",
+    `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 2v12M1 8h3M1 5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="6" y="2" width="3" height="12" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/><rect x="11" y="2" width="3" height="12" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/></svg>`,
+    () => editor.chain().focus().addColumnBefore().run()))
+  menu.appendChild(makeBtn("Insert column right",
+    `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 2v12M15 8h-3M15 5l-3 3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="2" width="3" height="12" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/><rect x="7" y="2" width="3" height="12" stroke="currentColor" stroke-width="1" rx="0.5" opacity="0.5"/></svg>`,
+    () => editor.chain().focus().addColumnAfter().run()))
+
+  menu.appendChild(makeDivider())
+
+  // Delete row/column buttons
+  menu.appendChild(makeBtn("Delete row",
+    `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 6h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 3l8 10M13 3L5 13" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.5"/></svg>`,
+    () => editor.chain().focus().deleteRow().run()))
+  menu.appendChild(makeBtn("Delete column",
+    `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 5l10 8M3 13L13 5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.5"/></svg>`,
+    () => editor.chain().focus().deleteColumn().run()))
+
+  menu.appendChild(makeDivider())
+
+  // Delete table — red icon
+  const delTableBtn = document.createElement("button")
+  delTableBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" stroke="#ef4444" stroke-width="1.3" rx="1"/><path d="M5 5l6 6M11 5l-6 6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/></svg>`
+  delTableBtn.title = "Delete table"
+  delTableBtn.style.cssText = btnStyle
+  hover(delTableBtn)
+  delTableBtn.addEventListener("click", (e) => { e.stopPropagation(); editor.chain().focus().deleteTable().run(); menu.remove() })
+  menu.appendChild(delTableBtn)
+
+  menu.appendChild(makeDivider())
+
+  // Resize grid button (9 rows × 5 columns grid + custom inputs)
+  const resizeWrap = document.createElement("div")
+  resizeWrap.style.cssText = `position: relative;`
+  const resizeBtn = document.createElement("button")
+  resizeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" stroke="currentColor" stroke-width="1.3" rx="0.5"/><rect x="9" y="1" width="6" height="6" stroke="currentColor" stroke-width="1.3" rx="0.5"/><rect x="1" y="9" width="6" height="6" stroke="currentColor" stroke-width="1.3" rx="0.5"/><rect x="9" y="9" width="6" height="6" stroke="currentColor" stroke-width="1.3" rx="0.5"/></svg>`
+  resizeBtn.title = "Resize table"
+  resizeBtn.style.cssText = btnStyle
+  hover(resizeBtn)
+  resizeWrap.appendChild(resizeBtn)
+
+  let dropdownEl: HTMLDivElement | null = null
+  let closeGridHandler: ((ev: MouseEvent) => void) | null = null
+
+  const closeDropdown = () => {
+    if (dropdownEl) { dropdownEl.remove(); dropdownEl = null }
+    if (closeGridHandler) { document.removeEventListener("click", closeGridHandler); closeGridHandler = null }
+  }
+
+  // Find the position of a cell at (targetRow, targetCol) inside a SPECIFIC table node
+  // (not just the first table in the document)
+  const findCellPos = (tablePos: number, targetRow: number, targetCol: number): number => {
+    let result = -1
+    let currentRow = -1
+    let currentCol = 0
+
+    editor.view.state.doc.nodesBetween(
+      tablePos,
+      tablePos + editor.view.state.doc.nodeAt(tablePos)!.nodeSize,
+      (node: ProseMirrorNode, pos: number) => {
+        if (result >= 0) return false
+        if (pos === tablePos) return true // skip table itself, descend
+        if (node.type.name === "tableRow") {
+          currentRow++
+          currentCol = 0
+          return true
+        }
+        if (node.type.name === "tableCell" || node.type.name === "tableHeader") {
+          if (currentRow === targetRow && currentCol === targetCol) {
+            result = pos + 1 // inside the cell
+            return false
+          }
+          currentCol++
+          return false
+        }
+        return false
+      }
+    )
+    return result
+  }
+
+  // Find the DOM table element's position in the ProseMirror document
+  const findTablePos = (tableEl: HTMLElement): number => {
+    let result = -1
+    editor.view.state.doc.descendants((node: ProseMirrorNode, pos: number) => {
+      if (result >= 0) return false
+      if (node.type.name === "table") {
+        // Check if this table node's DOM matches the clicked element
+        const dom = editor.view.nodeDOM(pos) as HTMLElement | null
+        if (dom === tableEl || dom?.contains(tableEl) || tableEl.contains(dom)) {
+          result = pos
+          return false
+        }
+      }
+      return result < 0
+    })
+    return result
+  }
+
+  // Resize table — operates on the clicked table only, from outer boundaries
+  const resizeTable = (targetRows: number, targetCols: number) => {
+    try {
+      const tablePos = findTablePos(table)
+      if (tablePos < 0) return
+
+      const tableNode = editor.view.state.doc.nodeAt(tablePos)
+      if (!tableNode) return
+
+      const curRows = tableNode.childCount
+      const curCols = curRows > 0 ? tableNode.firstChild!.childCount : 0
+
+      // Helper: set cursor in target cell via editor.chain(), return true if succeeded
+      const goTo = (row: number, col: number): boolean => {
+        const cellPos = findCellPos(tablePos, row, col)
+        if (cellPos < 0) return false
+        editor.chain().setTextSelection(cellPos).run()
+        return true
+      }
+
+      // Expand rows — add after last row
+      for (let i = curRows; i < targetRows; i++) {
+        const lastRow = editor.view.state.doc.nodeAt(tablePos)!.childCount - 1
+        const lastCol = editor.view.state.doc.nodeAt(tablePos)!.child(lastRow).childCount - 1
+        if (!goTo(lastRow, lastCol)) break
+        editor.commands.addRowAfter()
+      }
+
+      // Shrink rows — delete last row
+      for (let i = curRows; i > targetRows; i--) {
+        const t = editor.view.state.doc.nodeAt(tablePos)
+        if (!t || t.childCount <= 1) break
+        const lastRow = t.childCount - 1
+        const lastCol = t.child(lastRow).childCount - 1
+        if (!goTo(lastRow, lastCol)) break
+        editor.commands.deleteRow()
+      }
+
+      // Expand columns — add after last column
+      for (let i = curCols; i < targetCols; i++) {
+        const t = editor.view.state.doc.nodeAt(tablePos)
+        if (!t || t.childCount === 0) break
+        const lastCol = t.firstChild!.childCount - 1
+        if (!goTo(0, lastCol)) break
+        editor.commands.addColumnAfter()
+      }
+
+      // Shrink columns — delete last column
+      for (let i = curCols; i > targetCols; i--) {
+        const t = editor.view.state.doc.nodeAt(tablePos)
+        if (!t || t.childCount === 0 || t.firstChild!.childCount <= 1) break
+        const lastCol = t.firstChild!.childCount - 1
+        if (!goTo(0, lastCol)) break
+        editor.commands.deleteColumn()
+      }
+    } catch { /* table may become invalid during resize */ }
+  }
+
+  resizeBtn.addEventListener("click", (e) => {
+    e.stopPropagation()
+    if (dropdownEl) { closeDropdown(); return }
+
+    const dropdown = document.createElement("div")
+    dropdown.className = "table-resize-dropdown"
+    dropdown.style.cssText = `
+      position: absolute; top: 100%; left: 0; margin-top: 4px;
+      background: #2c2c2c; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      padding: 12px; z-index: 101;
+    `
+    dropdownEl = dropdown
+
+    // 9 rows × 5 columns grid
+    const GRID_ROWS = 9
+    const GRID_COLS = 5
+    const grid = document.createElement("div")
+    grid.style.cssText = `display: grid; grid-template-columns: repeat(${GRID_COLS}, 18px); gap: 2px; justify-content: center;`
+    dropdown.appendChild(grid)
+
+    // Preview: target dimensions on hover
+    const preview = document.createElement("div")
+    preview.style.cssText = `color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 8px; text-align: center; min-height: 16px;`
+    preview.textContent = "hover to select"
+    dropdown.appendChild(preview)
+
+    const cells: HTMLDivElement[] = []
+    for (let r = 1; r <= GRID_ROWS; r++) {
+      for (let c = 1; c <= GRID_COLS; c++) {
+        const cell = document.createElement("div")
+        cell.dataset.row = String(r)
+        cell.dataset.col = String(c)
+        cell.style.cssText = `width: 18px; height: 18px;
+          border: 1px solid rgba(255,255,255,0.12); background: transparent;
+          border-radius: 2px; cursor: pointer; transition: background 0.06s, border-color 0.06s;`
+        cell.addEventListener("mouseenter", () => {
+          // Highlight all cells from (1,1) to (r,c)
+          cells.forEach((d) => {
+            const cr = Number(d.dataset.row)
+            const cc = Number(d.dataset.col)
+            if (cr <= r && cc <= c) {
+              d.style.background = "rgba(59,130,246,0.6)"
+              d.style.borderColor = "rgba(59,130,246,0.9)"
+            } else {
+              d.style.background = "transparent"
+              d.style.borderColor = "rgba(255,255,255,0.12)"
+            }
+          })
+          preview.textContent = `${r} × ${c}`
+        })
+        cell.addEventListener("click", (ev) => {
+          ev.stopPropagation()
+          resizeTable(r, c)
+          closeDropdown()
+          menu.remove()
+        })
+        cells.push(cell)
+        grid.appendChild(cell)
+      }
+    }
+
+    // Reset grid highlight when mouse leaves grid area
+    grid.addEventListener("mouseleave", () => {
+      cells.forEach((d) => {
+        d.style.background = "transparent"
+        d.style.borderColor = "rgba(255,255,255,0.12)"
+      })
+      preview.textContent = "hover to select"
+    })
+
+    // Divider between grid and custom inputs
+    const sep = document.createElement("div")
+    sep.style.cssText = `height: 1px; background: rgba(255,255,255,0.15); margin: 10px 0 8px;`
+    dropdown.appendChild(sep)
+
+    // Custom row/col inputs
+    const inputRow = document.createElement("div")
+    inputRow.style.cssText = `display: flex; gap: 8px; align-items: center; justify-content: center;`
+
+    const inputStyle = `width: 48px; height: 26px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px; color: white; text-align: center; font-size: 12px; outline: none;`
+    const labelStyle = `color: rgba(255,255,255,0.5); font-size: 11px;`
+
+    const rowsLabel = document.createElement("span")
+    rowsLabel.style.cssText = labelStyle
+    rowsLabel.textContent = "rows"
+    const rowsInput = document.createElement("input")
+    rowsInput.type = "number"
+    rowsInput.min = "1"
+    rowsInput.value = String(table.querySelectorAll("tr").length)
+    rowsInput.style.cssText = inputStyle
+
+    const colsLabel = document.createElement("span")
+    colsLabel.style.cssText = labelStyle
+    colsLabel.textContent = "cols"
+    const colsInput = document.createElement("input")
+    colsInput.type = "number"
+    colsInput.min = "1"
+    colsInput.value = String(table.querySelector("tr")?.querySelectorAll("th,td").length || 3)
+    colsInput.style.cssText = inputStyle
+
+    const applyBtn = document.createElement("button")
+    applyBtn.textContent = "✓"
+    applyBtn.style.cssText = `width: 26px; height: 26px; background: rgba(59,130,246,0.7); border: none;
+      border-radius: 4px; color: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;`
+    applyBtn.addEventListener("mouseenter", () => { applyBtn.style.background = "rgba(59,130,246,0.9)" })
+    applyBtn.addEventListener("mouseleave", () => { applyBtn.style.background = "rgba(59,130,246,0.7)" })
+
+    const applyCustom = () => {
+      const r = Math.max(1, parseInt(rowsInput.value) || 1)
+      const c = Math.max(1, parseInt(colsInput.value) || 1)
+      resizeTable(r, c)
+      closeDropdown()
+      menu.remove()
+    }
+    applyBtn.addEventListener("click", (ev) => { ev.stopPropagation(); applyCustom() })
+    rowsInput.addEventListener("keydown", (ev) => { ev.stopPropagation(); if (ev.key === "Enter") applyCustom() })
+    colsInput.addEventListener("keydown", (ev) => { ev.stopPropagation(); if (ev.key === "Enter") applyCustom() })
+
+    inputRow.appendChild(rowsLabel)
+    inputRow.appendChild(rowsInput)
+    inputRow.appendChild(colsLabel)
+    inputRow.appendChild(colsInput)
+    inputRow.appendChild(applyBtn)
+    dropdown.appendChild(inputRow)
+
+    resizeWrap.appendChild(dropdown)
+
+    // Close dropdown when clicking outside it
+    setTimeout(() => {
+      closeGridHandler = (ev: MouseEvent) => {
+        if (dropdownEl && !dropdownEl.contains(ev.target as HTMLElement) && ev.target !== resizeBtn) {
+          closeDropdown()
+        }
+      }
+      document.addEventListener("click", closeGridHandler)
+    }, 10)
+  })
+
+  // Insert resize button as FIRST element in the menu
+  menu.insertBefore(resizeWrap, menu.firstChild)
+  const resizeDivider = makeDivider()
+  menu.insertBefore(resizeDivider, resizeWrap.nextSibling)
+
+  // Prevent clicks inside menu from bubbling to the table/ProseMirror
+  menu.addEventListener("click", (e) => e.stopPropagation())
+
+  table.style.position = "relative"
+  table.appendChild(menu)
+
+  // Close menu when clicking outside the table
+  setTimeout(() => {
+    const close = (e: MouseEvent) => {
+      if (!table.contains(e.target as HTMLElement)) {
+        menu.remove()
+        document.removeEventListener("click", close)
+      }
+    }
+    document.addEventListener("click", close)
+  }, 10)
+}
+
+// ──────────────────────────────────────────────
 // Utility: Simple Markdown Renderer
 // ──────────────────────────────────────────────
 function renderMarkdown(md: string): string {
@@ -1680,6 +2060,16 @@ export function TiptapEditor({
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement
+
+      // Table click → show floating menu (same pattern as image floating menu)
+      const tableEl = target.closest("table") as HTMLElement | null
+      if (tableEl && editorRef.current) {
+        const existing = document.getElementById("table-floating-menu")
+        if (existing && tableEl.contains(existing)) return // already showing for this table
+        if (existing) existing.remove()
+        showTableFloatingMenu(tableEl, editorRef.current)
+      }
+
       const anchor = target.closest('a[href^="note-id://"]') as HTMLAnchorElement | null
       if (anchor) {
         e.preventDefault()
