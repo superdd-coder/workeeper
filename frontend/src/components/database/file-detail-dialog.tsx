@@ -48,60 +48,6 @@ interface FileDetailDialogProps {
   openKey?: number
 }
 
-  if (offset !== undefined && offset >= 0 && offset < text.length) {
-    const len = chunkLength && chunkLength > 0 ? chunkLength : highlight.length
-    const end = Math.min(offset + len, text.length)
-    const matchText = text.substring(offset, end)
-    const probe = highlight.substring(0, Math.min(20, highlight.length))
-    if (probe && matchText.includes(probe)) {
-      return (
-        <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
-          {text.substring(0, offset)}
-          <mark className="bg-yellow-300 dark:bg-yellow-700 rounded px-0.5">{matchText}</mark>
-          {text.substring(end)}
-        </pre>
-      )
-    }
-  }
-  if (!highlight || highlight.length < 10) return <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">{text}</pre>
-  const tryFind = (): [number, number] => {
-    let idx = text.indexOf(highlight)
-    if (idx !== -1) return [idx, highlight.length]
-    const paragraphs = highlight.split("\n\n").filter(p => p.trim().length > 5)
-    if (paragraphs.length < 2) {
-      const trimmed = highlight.trim().substring(0, 100)
-      idx = text.indexOf(trimmed)
-      if (idx !== -1) return [idx, trimmed.length]
-      return [-1, 0]
-    }
-    const lastPara = paragraphs[paragraphs.length - 1].trim()
-    const lastIdx = text.indexOf(lastPara)
-    if (lastIdx === -1) return [-1, 0]
-    const lastEnd = lastIdx + lastPara.length
-    let chunkStart = lastIdx
-    for (let i = paragraphs.length - 2; i >= 0; i--) {
-      const para = paragraphs[i].trim()
-      if (para.length < 5) continue
-      const found = text.lastIndexOf(para, chunkStart - 1)
-      if (found === -1) break
-      const gap = text.substring(found + para.length, chunkStart)
-      if (gap.length > 4) break
-      chunkStart = found
-    }
-    return [chunkStart, lastEnd - chunkStart]
-  }
-  const [idx, matchLen] = tryFind()
-  if (idx === -1) return <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">{text}</pre>
-  const matchEnd = Math.min(idx + matchLen, text.length)
-  return (
-    <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
-      {text.substring(0, idx)}
-      <mark className="bg-yellow-300 dark:bg-yellow-700 rounded px-0.5">{text.substring(idx, matchEnd)}</mark>
-      {text.substring(matchEnd)}
-    </pre>
-  )
-}
-
 export function FileDetailDialog({ collection, source, chunks, chunksTotal, loading, onOpenChange, openKey }: FileDetailDialogProps) {
   const [previewContent, setPreviewContent] = useState<string | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
