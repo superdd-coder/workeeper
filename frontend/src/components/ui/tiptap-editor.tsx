@@ -2146,7 +2146,7 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
   })()
 
   return (
-    <div className="flex items-center gap-0.5 px-2 py-1 border-b border-border bg-muted/30 shrink-0 flex-wrap">
+    <div className="flex items-center gap-0.5 px-3 py-2 border-b border-border bg-muted/30 shrink-0 flex-wrap">
       {/* Text style */}
       <ToolbarBtn active={editor.isActive("bold")} tooltip="Bold (Ctrl+B)"
         onClick={() => editor.chain().focus().toggleBold().run()}>
