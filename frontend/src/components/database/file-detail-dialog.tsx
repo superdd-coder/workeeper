@@ -77,7 +77,6 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
     setDocSummary(null)
     setPreviewContent(null)
     setExtractedText(null)
-    setExtractedFormat("text")
     setHighlightOffset(undefined)
     setHighlightPage(undefined)
     setHighlightText("")
@@ -233,10 +232,8 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
       .then((res) => {
         if (!cancelled) {
           setExtractedText(res.text)
-          setExtractedFormat(res.format)
         }
       })
-      .catch(() => { if (!cancelled) { setExtractedText(null); setExtractedFormat("text") } })
       .finally(() => { if (!cancelled) setExtractedLoading(false) })
     return () => { cancelled = true }
   }, [source])

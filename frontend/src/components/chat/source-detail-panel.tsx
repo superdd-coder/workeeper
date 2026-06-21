@@ -70,7 +70,6 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
     setChunks([])
     setDocSummary(null)
     setExtractedText(null)
-    setExtractedFormat("text")
     setExpandedParents(new Set())
     setHighlightOffset(source ? _getHighlightOffset(source) : undefined)
     setHighlightPage(source?.metadata?.page_number as number | undefined)
@@ -129,10 +128,9 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
       .then((res) => {
         if (!cancelled) {
           setExtractedText(res.text)
-          setExtractedFormat(res.format)
         }
       })
-      .catch(() => { if (!cancelled) { setExtractedText(null); setExtractedFormat("text") } })
+      .catch(() => { if (!cancelled) { setExtractedText(null) } })
       .finally(() => { if (!cancelled) setExtractedLoading(false) })
     return () => { cancelled = true }
   }, [sourceName])
