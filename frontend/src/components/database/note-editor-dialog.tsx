@@ -805,9 +805,9 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
                 <Pencil className="h-3 w-3" />
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs gap-1 shrink-0"
+                className="h-7 px-2 text-xs gap-1 shrink-0 text-muted-foreground hover:text-primary"
                 onClick={handleDownload}
                 title="Export as .md"
               >
@@ -827,9 +827,9 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
             )}
             {showPropagateButton && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-7 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950"
+                className="h-7 text-xs text-muted-foreground hover:text-primary"
                 onClick={handlePropagateClick}
                 disabled={propagating}
               >

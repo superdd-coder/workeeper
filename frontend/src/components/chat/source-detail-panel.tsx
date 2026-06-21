@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, X, ChevronRight, ChevronDown, RefreshCw, Locate } from "lucide-react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { getFileChunks, getFilePreviewUrl, isPreviewable, getDocSummary, generateDocSummary, setDocSummaryInclude, getExtractedText, type ChunkDetail, type DocSummary } from "@/api/client"
 import type { Source } from "@/stores/app-store"
 import { toast } from "sonner"
@@ -145,7 +144,7 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
   const genKey = collection && sourceName ? _genKey(collection, sourceName) : null
   const isGenerating = !!(genKey && _generating.has(genKey))
 
-  // Reset state when source changes
+  // Reset state when source changes (not on chunk change within same source)
   useEffect(() => {
     setPreviewContent(null)
     setChunks([])
@@ -156,7 +155,7 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
     setHighlightOffset(source ? _getHighlightOffset(source) : undefined)
     setHighlightPage(source?.metadata?.page_number as number | undefined)
     setActiveTab("preview")
-  }, [chunkId, source])
+  }, [collection, sourceName])
 
   // Load chunks
   useEffect(() => {
@@ -389,24 +388,24 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
                   title={`Preview: ${sourceName}`}
                 />
               ) : previewContent !== null ? (
-                /* Text-based: rendered with offset-based highlight */
                 <ScrollArea className="h-full">
-                  <CardContent className="p-4">
-                    {sourceName?.toLowerCase().endsWith(".md") ? (
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{previewContent}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <div ref={textContentRef}>
-                        <HighlightedText
-                          text={previewContent}
-                          highlight={highlightText}
-                          offset={highlightOffset}
-                          chunkLength={source?.text?.length}
-                        />
-                      </div>
-                    )}
-                  </CardContent>
+                  <div ref={textContentRef} className="p-4">
+                    <TiptapEditor
+                      value={(() => {
+                        const hlOffset = source?.metadata?.char_offset as number | undefined
+                        const hlLength = source?.text?.length || 0
+                        if (typeof hlOffset === "number" && hlLength > 0 && hlOffset >= 0 && hlOffset < previewContent.length) {
+                          const before = previewContent.substring(0, hlOffset)
+                          const match = previewContent.substring(hlOffset, hlOffset + hlLength)
+                          const after = previewContent.substring(hlOffset + hlLength)
+                          return before + "<mark>" + match + "</mark>" + after
+                        }
+                        return previewContent
+                      })()}
+                      readonly
+                      showToolbar={false}
+                    />
+                  </div>
                 </ScrollArea>
               ) : (
                 <ScrollArea className="h-full">
@@ -430,21 +429,8 @@ export function SourceDetailPanel({ source, onClose }: SourceDetailPanelProps) {
                 </div>
               ) : extractedText !== null ? (
                 <ScrollArea className="h-full">
-                  <div ref={extractedContentRef}>
-                    <CardContent className="p-3">
-                      {extractedFormat === "markdown" ? (
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{extractedText}</ReactMarkdown>
-                        </div>
-                      ) : (
-                        <HighlightedText
-                          text={extractedText}
-                          highlight={highlightText}
-                          offset={highlightOffset}
-                          chunkLength={highlightText.length}
-                        />
-                      )}
-                    </CardContent>
+                  <div ref={extractedContentRef} className="p-3">
+                    <TiptapEditor value={extractedText} readonly showToolbar={false} />
                   </div>
                 </ScrollArea>
               ) : (

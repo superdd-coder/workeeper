@@ -1,19 +1,23 @@
-# SinkDuce
+# SINKDUCE
 
-<p align="center"><img src="logo.png" alt="SinkDuce" width="120" /></p>
+[English](README.md)
 
-[English](https://github.com/superdd-coder/sinkduce)
+$$\text{\textbf{Spark. Sink. Educe.}}$$
 
-为项目管理人员打造的知识库与会议记忆系统。导入项目文档、转录会议、与项目数据和会议纪要对话 — 一切自动整理、总结、可检索。
+> **一个为“反囤积狂”设计的智能、Context-Isolated 个人记忆生态系统。**
 
-> *注意：截图中展示的项目数据均为 AI 生成的演示信息。*
+Sinkduce 秉承一个核心哲学：**从不盲目囤积知识——只沉淀真正重要的核心。** 与那些鼓励无休止堆砌数据、最终沦为“知识坟墓”的臃肿传统 Wiki 或知识库不同，Sinkduce 被设计为一个**高保真认知过滤器**。它专为管理多个复杂项目的专业人士和奔波于多门课程的学者打造。Sinkduce 拒绝将未读的外部杂乱文本盲目塞进向量池，而是将现实世界中的对话、会议、讲座和沉淀后的概念笔记转化为精准的结构化单元，让您在完全隔离的 Context-Isolated 架构中与核心运行记忆进行深度交互。
 
-## 快速开始
+> *注意：Sinkduce 目前已针对超高效的个人系统进行了深度优化。支持团队协作的项目内存及多租户服务器端部署已列入未来的企业版路线图。*
 
-**前提**: 已安装 Docker
+---
+
+## 🚀 快速启动
+
+**前置条件**：需安装 Docker
 
 ```bash
-git clone https://github.com/superdd-coder/sinkduce.git
+git clone [https://github.com/superdd-coder/sinkduce.git](https://github.com/superdd-coder/sinkduce.git)
 cd sinkduce
 
 # 可选：自定义端口
@@ -23,157 +27,100 @@ cp .env.template .env
 docker compose up -d --build
 ```
 
-打开 [http://localhost:18900](http://localhost:18900)。首次启动：
-1. 下载你需要的本地转录模型
-2. 进入 **Settings** → 添加 **LLM provider**（支持任何 OpenAI 兼容 API）
-3. 添加 **Embedding provider**，创建项目数据库
 
-### 更新
+
+启动后访问 [http://localhost:18900](http://localhost:18900/)。首次运行时：
+
+1. 下载您所需的本地语音转文字（STT）模型。
+2. 前往 **Settings（设置）** → 添加 **LLM 提供商**（任何兼容 OpenAI 协议的 API）。
+3. 添加 **Embedding 提供商** 并创建您的项目数据库。
+
+### 升级更新
 
 ```bash
 git pull
 docker compose up -d --build
 ```
 
-Docker 会用最新代码重建镜像，同时保留 `data/` 目录（数据库、配置、历史记录）。
+Docker 将使用最新代码重新构建镜像，同时完整保留您的 `data/` 目录（包含数据库、配置及历史记录）。
 
-### 一键配置 DashScope API
+### 推荐开箱即用配置 (阿里云百炼 DashScope)
 
-如果你使用 [DashScope（阿里云百炼）](https://bailian.console.aliyun.com/)，可以一次性配置所有服务 — LLM、Embedding、Reranker、文件转写、实时转写。进入 **Settings** → **LLM Providers** 标签 → 点击 **OneShot Setting (DashScope API)**，输入 DashScope API Key，各项服务即按默认值创建：
+本项目对 [阿里云百炼 (DashScope)](https://bailian.console.aliyun.com/) 进行了深度优化。前往 **Settings** → **LLM Providers** → 点击 **OneShot Setting (DashScope API)** 并输入您的 API Key，系统将自动一键配置所有服务，并匹配最佳默认模型：
 
-| 服务 | 默认模型 |
-|------|----------|
-| LLM | deepseek-v4-flash |
-| Embedding | text-embedding-v4 |
-| Reranker | qwen3-rerank |
-| 文件转写 | fun-asr |
-| 实时转写 | fun-asr-realtime |
+* **LLM**: `deepseek-v4-flash`
+* **Embedding**: `text-embedding-v4`
+* **Reranker**: `qwen3-rerank`
+* **Transcription**: `fun-asr` / `fun-asr-realtime`
 
-可在对话框中修改任意模型名称后一键应用。配置完成后可单独调整各服务或切换默认值。
+## 🏗️ 三大核心支柱
 
-## 工作流程
+### ⚡ 01. Spark: Fluid Friction Capture & Synthesis
 
-SinkDuce 将会议和文档连接成统一的项目记忆。
+**Spark** 负责捕捉实时音频和个人随笔，并将其转化为结构化的原始资产。
 
-### 会议 → 数据库流转
+* **Full-Featured Markdown Workspace (Collection Notes)**: 创建明确绑定到特定业务上下文的结构化个人笔记。支持全功能所见即所得（WYSIWYG）编辑及 Markdown 语法（标题、表格、任务列表、代码块、图片和 YouTube 视频内嵌）。
+* **Intelligent Note Distillation (Drag-to-Distill)**: 直接将现有的旧笔记或文档拖入当前工作区，系统会自动将其核心洞察提取为高密度的引用块，无需手动重写即可无缝聚合零散灵感。
+* **AI Image Ingestion**: One click 触发 AI 生成精准的图像上下文文本描述，将视觉数据织入您的 Markdown 记忆网络中以供向量索引。支持图片粘贴、拖拽和带行内字幕的尺寸调整。
+* **音频转录与“三折页”流水线**: 支持上传录音或通过 WebSockets 录制实时会议/讲座。语音转文字（STT）可由内置的本地引擎或灵活的外部 API 端点处理。系统随后会生成结构化的三折页伪影：*Summary（语义合成摘要）*、*To-Do List/Action Items（清晰的行动项）* 以及 *Detail（深度信息提取，过滤口语杂音并保留核心意图）*。
+* **Hot Words**: 管理特定专业领域的自定义词汇库，以显著提高特定术语的语音转写准确率。
 
-转录完会议后，SinkDuce 会捕获全部内容：带说话人识别的转写文本、自动生成的要旨/摘要/待办事项、会议笔记。一键即可将会议内容分配到项目数据库：
+### 📥 02. Sink: Anti-Hoarding Ingestion Pipeline
 
-![会议导入数据库](screenshots/meeting-ingest.jpg)
+**Sink** 确保您的数据被清晰地隔离并完成上下文增强。
 
-会议转写、总结和笔记变为项目集合中可检索的文档。支持批量导入多个会议，将不同会议内容映射到对应的项目版块。
+* **Context-Isolated Collections**: 为不同的企业项目或大学课程建立独立、安全的向量数据库集合（基于 Qdrant），从根本上消除跨上下文的数据污染。
+* **Multi-Project Segment-Level Semantic Router**: 真实的会议和讲座往往会在多个话题间穿插。Sinkduce 会自动将文本片段与各活跃集合的摘要进行比对，将单个音频转录文本自动切片，并将不同的对话碎片路由至各自对应的集合中。
+* **Granular Document Parsing & Chunking**: 利用内置的本地解析引擎（支持 12 种格式解析器）或链接到强大的云端解析 API（如 *MinerU*）。支持基于标题、段落和最大 Token 配置的高级 **Parent-Child chunking**，同时保持完整的词边界。
+* **Context Enrichment Engine**: 开启后，LLM 将评估每个切分出的数据块，并为其注入缺失的全局上下文，从而缓解检索过程中的“分块孤立”效应。
+* **Auto-Summarization & Consolidation**: 每个文档都会获得一个结构化摘要。同时，集合会生成固化综述，并在文档间出现事实冲突时自动进行冲突检测与提示。
 
-### 项目数据库
+### 🧠 03. Educe: High-Dimensional Contextual Reasoning
 
-每个项目拥有独立的集合，可配置独立的切片和嵌入策略。上传合同、提案、表格等文件——系统自动解析、切片、上下文充实、索引。
+**Educe** 实现了前沿的检索架构，将静态的数据转化为活跃的智能。
 
-![项目数据库](screenshots/project-database.jpg)
+* **Advanced Hybrid Retrieval**: 支持标准稠密向量相似度检索、关键词-语义混合查询（基于 Qdrant 的 BM25 + Dense），并结合先进的 **Reranking算法** 来锁定顶级上下文。
+* **Iterative Agentic RAG Pipeline**: 远超传统朴素的单次语义检索。Sinkduce 编排了一个多步骤的 Agentic RAG 循环：*Analyze → Route → Retrieve → Grade → Decompose → Rerank → Synthesize*，直到精准锁定底层事实。
+* **Multi-Collection Federated Search**: Context-Isolated 架构并不会限制高维度的知识合成。用户可以设计同时跨越多个明确集合的联合查询，系统将触发相互隔离的多路检索流水线，并通过顶层推理协调跨领域碎片。
+* **Absolute Source Traceability (3-Layer Traceability)**: 允许直接穿透至原始文本，建立对 AI 回答的铁证信任。您可以立即向下钻取三层源头脉络：特定 *Vector Chunk*、*Full-Text Context* 或 *Original Source File*。
+* **Recall Evaluation**: 内置基准测试功能，可通过可调参数评估检索的召回率（Recall）和精确度（Precision）。
+* **Local MCP Interface**: 提供开放的模型上下文协议（MCP）服务器接口。将 Sinkduce 无缝连接到外部自主智能体框架（如 Claude Code、Cursor、Hermes），让您能够**在任何工作流中随时调用沉淀的知识**。
 
-**自动摘要**: 每份文档生成结构化摘要（数据点、事实、洞察）。集合级别有整合概览，文档矛盾时自动检测冲突。
+## 🔒 模型配置与数据安全
 
-### AI 对话
+Sinkduce 采用可插拔且解耦的模型架构，完全通过 Web UI 进行可视管理与配置，**无需手动编辑任何 YAML 配置文件**。
 
-跨集合与项目数据对话。Agentic RAG 管道处理查询分析、多集合检索、重排序和迭代优化——全部流式响应。
+* **Embedded Local Services**: 核心解析和高保真语音转文字（基于 FunASR SenseVoiceSmall）引擎原生嵌入在本地环境中，确保基础处理默认可以完全离线进行。
+* **Full Customization via OpenAI Protocols**: 关键模型层——包括 **LLM（推理）**、**Embedding（向量生成）** 和 **Rerank（重排算法）**——完全兼容标准的 `OpenAI Compatible` API 协议。可以通过 `max_concurrent_requests` 设置全局并发控制。
+* **Seamless Bridge to Advanced Providers**: 用户可以轻松接入行业顶尖商业模型的 API Key（如 OpenAI、Anthropic、DeepSeek, Google 或 DashScope）以及高级解析引擎（如 MinerU），以应对极度复杂的跨文档合成任务。
+* **Air-Gapped Privacy Shield**: 面对涉及商业机密的日志或核心隐私数据，用户可以将所有自定义模型参数指向本地开源架构（例如通过本地运行的 Ollama、LM Studio 或 vLLM 承载权重）。在此模式下，Sinkduce 完全闭环运行，确保敏感数据绝不离开您的本地基础设施。
 
-![对话](screenshots/chat.jpg)
+*All credentials 和 API 密钥均保存在本地 `data/config.yaml` 中（该文件已加入 gitignore，绝不会被提交）。*
 
-## 功能
+## ⚙️ 环境变量
 
-### 会议转录
+所有变量均为可选。复制 `.env.template` 并重命名为 `.env` 即可自定义端口：
 
-![会议摘要](screenshots/meeting-summary.jpg)
+| **Variable**       | **Default** | **Description**     |
+| ------------------ | ----------- | ------------------- |
+| `API_PORT`         | `18900`     | 后端服务端口        |
+| `UI_PORT`          | `5173`      | Vite 开发服务器端口 |
+| `QDRANT_HTTP_PORT` | `6343`      | Qdrant HTTP 端口    |
+| `QDRANT_GRPC_PORT` | `6334`      | Qdrant gRPC 端口    |
 
-- **文件转录** — 上传录音离线转写，自动识别说话人
-- **实时转录** — WebSocket 流式转写，适用于实时会议
-- **本地模型** — FunASR SenseVoiceSmall 完全离线运行，无需云端
-- **云端提供商** — 支持 DashScope FunASR 和 OpenAI 兼容 API
-- **自动生成摘要** — LLM 提取要旨、摘要、待办事项
-- **会议笔记** — 结构化的会议文档
-- **热词库** — 自定义领域词汇，提高转写准确率
+## 🔌 MCP 服务器接口
 
-![实时转录](screenshots/meeting-realtime.jpg)
+> *注：目前为原型阶段，将在未来版本中持续优化。*
 
-### RAG 管道
+Sinkduce 自带内置的 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 服务器，将整套 Agentic RAG 流水线抽象为工具（Tools）暴露给 AI 编码 Agent。您可以在 Claude Code、Cursor 或任何兼容 MCP 的客户端中使用它，直接在 IDE 中异步检索您的知识库。
 
-- **Agentic RAG** — 分析 → 路由 → 检索 → 评分 → 分解 → 重排 → 合成
-- **混合搜索** — 稠密向量 + 稀疏 BM25，基于 Qdrant
-- **流式响应** — SSE 实时对话输出
-- **重排序** — 支持 Cohere、Qwen 或本地模型
-- **召回评估** — 内置基准测试工具，参数可调
+### 快速配置 (以 Claude Code 为例)
 
-![评估](screenshots/evaluation.jpg)
+将以下配置添加至您的 Claude Code MCP 设置中（用户级 `~/.claude/settings.json` 或项目级 `.claude/settings.json`）：
 
-### 平台
-
-- **Provider 体系** — 可插拔的 LLM / Embedding / Reranker / 转录后端
-- **OpenAI 兼容** — 支持 OpenAI、DeepSeek、Qwen、Ollama、vLLM、LM Studio 等
-- **零配置** — 全部设置通过 Web 界面管理，无需手动编辑 YAML
-- **MCP 服务** — 将 RAG 能力暴露为 AI Agent 工具
-- **任务队列** — 异步文档处理，全局 LLM 并发控制
-
-![设置](screenshots/setting.jpg)
-
-## 架构
+JSON
 
 ```
-frontend/          React 19 + Vite + Tailwind CSS + Shadcn UI
-src/
-  api/             FastAPI 路由
-  db/              Qdrant 客户端
-  mcp/             MCP 服务器
-  parsers/         12 种格式解析器
-  providers/       LLM、Embedding、Reranker、转录
-  rag/             切片器、检索器、Agent、重排序、摘要管理
-  meeting/         会议模型、转录、路由
-  hot_words/       词汇库管理
-  tasks/           异步任务队列（含并发控制）
-data/              运行时数据（gitignored）
-```
-
-## 推荐配置
-
-项目针对[阿里云百炼平台](https://bailian.console.aliyun.com/)进行了优化适配：
-
-- **转录** — 百炼 FunASR（专项优化适配）
-- **Reranker** — 通过百炼 API 使用 Qwen3-Reranker
-
-推荐使用百炼 API 进行配置，以获得最佳开箱即用体验。后续如有需要将增加更多的 Provider 适配。
-
-## 配置
-
-全部通过 **Settings** 页面管理，无需手动编辑配置文件。
-
-- **LLM** — 任意 OpenAI 兼容端点，可配置 `max_concurrent_requests` 控制并发
-- **Embedding** — 远端 API（自动探测维度）或本地 sentence-transformers
-- **Reranker** — Cohere、Qwen DashScope 或本地模型
-- **转录** — 设备选择（CPU/GPU），云端 API 密钥
-
-API 密钥存储在 `data/config.yaml`（gitignored，不会提交）。
-
-## API
-
-| 端点 | 描述 |
-|----------|-------------|
-| `/api/query` | 对话（SSE 流式） |
-| `/api/documents` | 文档上传、解析、列表、删除 |
-| `/api/collections` | 集合增删改查 |
-| `/api/config` | Provider 与设置管理 |
-| `/api/recall` | 召回评估与基准测试 |
-| `/api/info` | 摘要、冲突、项目描述 |
-| `/api/meetings` | 会议增删改查、转录、笔记 |
-| `/hot-words` | 词汇库管理 |
-
-`GET /health → {"status": "ok"}`
-
-## MCP 服务
-
-SinkDuce 内置 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 服务器，将完整的 RAG 管道以工具形式暴露给 AI 编程助手。配合 Claude Code、Cursor 或任何兼容 MCP 的客户端使用，可直接在 IDE 中查询知识库。
-
-### 快速配置 (Claude Code)
-
-将以下内容添加到 Claude Code 的 MCP 设置中（`~/.claude/settings.json` 或项目级 `.claude/settings.json`）：
-
-```json
 {
   "mcpServers": {
     "sinkduce": {
@@ -185,46 +132,42 @@ SinkDuce 内置 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/)
 }
 ```
 
-MCP 服务使用 **stdio** 传输 — Claude Code 以子进程方式启动，通过 stdin/stdout 通信，无需端口。
+该 MCP 服务器采用 **stdio** 传输协议——Claude Code 会将其作为子进程启动并通过标准输入/输出（stdin/stdout）进行双向通信。无需暴露额外端口。
 
-### 可用工具
+### Available MCP Tools
 
-| 工具 | 描述 |
-|------|-------------|
-| **`list_collections`** | 列出所有知识库及其文档片段数 |
-| **`create_collection`** | 创建新集合（合理默认值） |
-| **`get_collection_config`** | 获取集合完整配置 |
-| **`update_collection_config`** | 更新集合配置（部分更新） |
-| **`delete_collection`** | 删除集合及其所有文档 |
-| **`list_documents`** | 列出集合中的文档 |
-| **`upload_document`** | 上传文档进行异步索引 |
-| **`upload_folder`** | 从服务器目录批量导入文档 |
-| **`delete_document`** | 删除文档及其所有片段 |
-| **`get_task_status`** | 查询异步任务进度 |
-| **`rag_query`** | 提问 — Agentic RAG 生成带来源引用的回答 |
-| **`search_chunks`** | 原始片段检索，带相关性分数 |
-| **`get_query_history`** | 获取历史查询记录 |
-| **`get_collection_summary`** | LLM 生成的集合概览 |
-| **`get_project_description`** | 集合的简短描述 |
-| **`get_doc_summary`** | 文档的结构化摘要 |
-| **`get_conflicts`** | 检测文档间的矛盾信息 |
-| **`trigger_consolidate`** | 重建集合级别的摘要 |
+* **`list_collections`** / **`create_collection`** / **`delete_collection`**: 知识库集合的增删改查。
+* **`get_collection_config`** / **`update_collection_config`**: Manage 特定集合的分块规则与向量配置。
+* **`list_documents`** / **`upload_document`** / **`delete_document`**: 文档生命周期管理。
+* **`upload_folder`**: 从服务器指定目录批量导入文档。
+* **`get_task_status`**: 查看异步解析与向量索引队列的实时进度。
+* **`rag_query`**: 跨集合的 Agentic RAG 联合查询，附带精准源头引用。
+* **`search_chunks`**: 原始向量/混合片段检索，返回相关性得分。
+* **`get_doc_summary`** / **`get_collection_summary`** / **`get_conflicts`**: 访问高层摘要及数据事实冲突检测报告。
 
-## 环境变量
+## 🛠️ 技术栈与架构设计
 
-全部可选。复制 `.env.template` 为 `.env`：
+### Backend & Frontend Stack
 
-| 变量 | 默认值 | 描述 |
-|----------|---------|-------------|
-| `API_PORT` | `18900` | 后端端口 |
-| `UI_PORT` | `5173` | Vite 开发服务器端口 |
-| `QDRANT_HTTP_PORT` | `6343` | Qdrant HTTP |
-| `QDRANT_GRPC_PORT` | `6334` | Qdrant gRPC |
+Python 3.11+, FastAPI, React 19, Vite, TypeScript, Tailwind CSS, Qdrant, FunASR, Zustand, Shadcn UI.
 
-## 技术栈
+### Directory Layout
 
-Python 3.11+, FastAPI, React 19, Vite, TypeScript, Tailwind CSS, Qdrant, FunASR, Zustand
+```
+frontend/          React 19 + Vite + Tailwind CSS + Shadcn UI 前端源码
+src/
+  api/             FastAPI 路由网关
+  db/              Qdrant 数据库客户端连接器
+  mcp/             MCP 协议标准服务器实现
+  parsers/         12 种格式解析器（含内置解析与 MinerU 云端集成）
+  providers/       LLM、Embedding、Reranker、语音转写等后端驱动
+  rag/             Chunker、Retriever、Agent 编排、Reranker 及 Summary Manager
+  meeting/         会议模型、流式转写流水线及路由逻辑
+  hot_words/       专业领域词汇库（热词）管理模块
+  tasks/           全局 LLM 并发控制的异步任务队列
+data/              Runtime data、数据库及配置文件（gitignored）
+```
 
-## 许可
+## 🗺️ 未来路线图
 
-MIT — 详见 [LICENSE](LICENSE)。
+* 多租户服务器端部署架构，支持团队间协同的项目级内存共享 (Enterprise Release)。

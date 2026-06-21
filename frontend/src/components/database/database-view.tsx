@@ -194,12 +194,40 @@ export function DatabaseView() {
 
       <div className="flex-1 overflow-hidden">
         {activeCollection ? (
-          <div className="h-full flex flex-col p-4">
+          <div className="h-full flex flex-col px-10 py-8">
+            {/* Collection name header */}
+            <div className="flex items-baseline justify-between mb-5">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.15em] text-foreground">
+                {collections.find(c => c.id === activeCollection)?.name || activeCollection}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {files.length > 0 && `${files.length} files · `}{collections.find(c => c.id === activeCollection)?.points_count ?? 0} chunks
+              </span>
+            </div>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <TabsList className="w-fit">
-                <TabsTrigger value="info">Info</TabsTrigger>
-                <TabsTrigger value="files">Files</TabsTrigger>
-                <TabsTrigger value="config">Config</TabsTrigger>
+              <TabsList className="w-fit bg-transparent p-0 gap-5 border-b rounded-none border-border">
+                <TabsTrigger
+                  value="info"
+                  className="text-[10px] font-medium uppercase tracking-[0.12em] px-0 py-1.5 rounded-none bg-transparent data-[state=active]:shadow-none text-muted-foreground"
+                  style={{ borderColor: "transparent" }}
+                >
+                  Info
+                </TabsTrigger>
+                <TabsTrigger
+                  value="files"
+                  className="text-[10px] font-medium uppercase tracking-[0.12em] px-0 py-1.5 rounded-none bg-transparent data-[state=active]:shadow-none text-muted-foreground"
+                  style={{ borderColor: "transparent" }}
+                >
+                  Files
+                </TabsTrigger>
+                <TabsTrigger
+                  value="config"
+                  className="text-[10px] font-medium uppercase tracking-[0.12em] px-0 py-1.5 rounded-none bg-transparent data-[state=active]:shadow-none text-muted-foreground"
+                  style={{ borderColor: "transparent" }}
+                >
+                  Config
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="flex-1 mt-2 overflow-hidden min-h-0">
@@ -226,17 +254,18 @@ export function DatabaseView() {
                     ) : files.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No files yet</p>
                     ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-0">
                         {files.map((file) => (
                           <div
                             key={file.source}
-                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer text-sm"
+                            className="flex items-center gap-3 py-2.5 cursor-pointer text-sm border-b transition-colors hover:opacity-70 border-b border-dashed border-border text-foreground"
                             onClick={() => openFileDetail(file.source)}
                           >
-                            <span className="flex-1 truncate">{file.source}</span>
-                            <span className="text-xs text-muted-foreground">{file.chunk_count} chunks</span>
+                            <span className="flex-1 truncate text-xs">{file.source}</span>
+                            <span className="text-[10px] font-medium text-muted-foreground">{file.chunk_count} chunks</span>
                             <button
-                              className="text-destructive hover:underline text-xs"
+                              className="text-[10px] opacity-0 hover:opacity-100 transition-opacity cursor-pointer text-muted-foreground"
+                              style={{ background: "none", border: "none" }}
                               onClick={(e) => { e.stopPropagation(); setDeleteFileTarget(file.source) }}
                             >
                               Delete
@@ -259,8 +288,13 @@ export function DatabaseView() {
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             <div className="text-center">
-              <Database className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Select a collection or create one</p>
+              <div
+                className="w-10 h-10 border mx-auto mb-3 flex items-center justify-center border-border"
+                style={{ borderRadius: "3px", opacity: 0.3 }}
+              >
+                <Database className="h-5 w-5" />
+              </div>
+              <p className="text-sm" style={{ fontFamily: "var(--font-serif)" }}>Select a collection or create one</p>
             </div>
           </div>
         )}

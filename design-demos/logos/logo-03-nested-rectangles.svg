@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80" fill="none">
+  <!--
+    SinkDuce Logo — Concept 3: Nested Open Rectangles
+    Three concentric rectangles with progressive rotation (5°, 10°, 15°).
+    Each has a strategically placed gap — never fully closed.
+    Gaps spiral inward, suggesting knowledge drawn toward a center.
+    Evokes: architectural blueprints, surveying instruments, engineering diagrams.
+  -->
+
+  <style>
+    .r1 { transform-origin: 50px 50px; transform: rotate(5deg); }
+    .r2 { transform-origin: 50px 50px; transform: rotate(10deg); }
+    .r3 { transform-origin: 50px 50px; transform: rotate(15deg); }
+  </style>
+
+  <!-- R1: Outermost — gap at bottom-left corner -->
+  <g class="r1">
+    <line x1="19" y1="15" x2="81" y2="15" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="81" y1="15" x2="81" y2="85" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="81" y1="85" x2="23" y2="85" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="19" y1="81" x2="19" y2="15" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+  </g>
+
+  <!-- R2: Middle — gap at top-right corner -->
+  <g class="r2">
+    <line x1="36.7" y1="23.5" x2="50" y2="22" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="63.3" y1="25" x2="62" y2="50" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="62" y1="50" x2="38" y2="73.5" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="38" y1="73.5" x2="36.7" y2="23.5" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+  </g>
+
+  <!-- R3: Innermost — gap at top-left corner -->
+  <g class="r3">
+    <line x1="56.5" y1="33.6" x2="68.5" y2="36.8" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="68.5" y1="36.8" x2="65.2" y2="61.5" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="65.2" y1="61.5" x2="34.8" y2="58.4" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+    <line x1="34.8" y1="58.4" x2="36" y2="36" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="square"/>
+  </g>
+</svg>

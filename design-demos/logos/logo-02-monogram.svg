@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 65" fill="none">
+  <!--
+    SinkDuce Logo — Concept 2: S + D Geometric Monogram
+    S: three horizontal bars connected by subtle diagonals.
+    D: vertical bar + open arc (never closes).
+    Thin vertical divider separates the two letterforms.
+    Bauhaus-influenced geometric construction.
+  -->
+
+  <!-- === S === -->
+  <!-- Top horizontal bar -->
+  <line x1="44" y1="12" x2="28" y2="12" stroke="#06120D" stroke-width="0.6" stroke-linecap="square"/>
+  <!-- Middle horizontal bar -->
+  <line x1="28" y1="31" x2="44" y2="31" stroke="#06120D" stroke-width="0.6" stroke-linecap="square"/>
+  <!-- Bottom horizontal bar -->
+  <line x1="44" y1="50" x2="28" y2="50" stroke="#06120D" stroke-width="0.6" stroke-linecap="square"/>
+  <!-- Upper diagonal connector -->
+  <line x1="42" y1="14" x2="30" y2="29" stroke="#06120D" stroke-width="0.5" stroke-linecap="round"/>
+  <!-- Lower diagonal connector -->
+  <line x1="30" y1="33" x2="42" y2="48" stroke="#06120D" stroke-width="0.5" stroke-linecap="round"/>
+
+  <!-- === D === -->
+  <!-- Vertical bar -->
+  <line x1="58" y1="12" x2="58" y2="50" stroke="#06120D" stroke-width="0.6" stroke-linecap="square"/>
+  <!-- Open arc — intentionally does not close -->
+  <path d="M58,16 C66,16 74,24 74,33 C74,42 66,50 58,46" stroke="#06120D" stroke-width="0.6" stroke-linecap="round" fill="none"/>
+
+  <!-- Divider -->
+  <line x1="51" y1="12" x2="51" y2="50" stroke="#2A4D3E" stroke-width="0.3" stroke-linecap="round"/>
+</svg>

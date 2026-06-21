@@ -1,14 +1,16 @@
-# SinkDuce
-
-<p align="center"><img src="logo.png" alt="SinkDuce" width="120" /></p>
+# SINKDUCE
 
 [中文](README_CN.md)
 
-A knowledge base and meeting memory system built for project managers. Ingest project documents, transcribe meetings, and chat with your project data and meeting minutes — everything automatically organized, summarized, and searchable.
+$$\text{\textbf{Spark. Sink. Educe.}}$$
 
-> *Note: All project data shown in screenshots is AI-generated for demonstration purposes.*
+> **An Intelligent, Context-Isolated Personal Memory Ecosystem Designed for the "Anti-Hoarder."**
 
-## Quick Start
+Sinkduce is built on a strict philosophy: **Never hoard knowledge—only sink what truly matters.** Unlike massive, bloated traditional wikis or knowledge bases that encourage endless data hoarding (turning into "knowledge graveyards"), Sinkduce is designed as a **high-fidelity cognitive filter**. It is tailored for professionals managing multiple complex projects and students navigating multiple courses. Instead of blindly filling the vector pool with unread external text files, Sinkduce turns real-world conversations, lectures, and curated conceptual notes into precise structural units, allowing you to interact with your core operational memory under a context-isolated architecture.
+
+> *Note: Sinkduce is currently optimized as a hyper-efficient personal system. Server-side deployments and multi-user collaborative project memory are planned in future enterprise releases.*
+
+## 🚀 Quick Start
 
 **Prerequisites**: Docker
 
@@ -23,10 +25,11 @@ cp .env.template .env
 docker compose up -d --build
 ```
 
-Open [http://localhost:18900](http://localhost:18900). On first launch:
-1. Download the local transcription models you need
-2. Go to **Settings** → add an **LLM provider** (any OpenAI-compatible API)
-3. Add an **Embedding provider** and create a Project Database
+Open [http://localhost:18900](http://localhost:18900/). On first launch:
+
+1. Download the local transcription models you need.
+2. Go to **Settings** → add an **LLM provider** (any OpenAI-compatible API).
+3. Add an **Embedding provider** and create a Project Database.
 
 ### Updating
 
@@ -37,156 +40,83 @@ docker compose up -d --build
 
 Docker rebuilds the image with the latest code while preserving your `data/` directory (database, config, history).
 
-### OneShot Setting with DashScope API
+### Recommended Out-of-the-Box Setup (DashScope)
 
-If you use [DashScope (阿里云百炼)](https://bailian.console.aliyun.com/), you can configure all providers — LLM, Embedding, Reranker, File Transcription, Realtime Transcription — in one step. Go to **Settings** → **LLM Providers** tab → click **OneShot Setting (DashScope API)**, enter your DashScope API Key, and each provider is created with sensible defaults:
+The project is highly optimized for [Alibaba Cloud DashScope (Bailian/阿里云百炼)](https://bailian.console.aliyun.com/). Go to **Settings** → **LLM Providers** → click **OneShot Setting (DashScope API)**, enter your API Key, and all services (LLM, Embedding, Reranker, STT) will automatically auto-configure with optimal defaults:
 
-| Service | Default Model |
-|---------|---------------|
-| LLM | deepseek-v4-flash |
-| Embedding | text-embedding-v4 |
-| Reranker | qwen3-rerank |
-| File Transcription | fun-asr |
-| Realtime Transcription | fun-asr-realtime |
+* **LLM**: `deepseek-v4-flash`
+* **Embedding**: `text-embedding-v4`
+* **Reranker**: `qwen3-rerank`
+* **Transcription**: `fun-asr` / `fun-asr-realtime`
 
-You can override any model name in the dialog before applying. After setup, adjust individual provider settings or switch defaults as needed.
+## 🏗️ Core Pillars
 
-## How It Works
+### ⚡ 01. Spark: Fluid Friction Capture & Synthesis
 
-SinkDuce connects two worlds — meetings and documents — into a unified project memory.
+**Spark** captures live audio and personal notes, turning them into structured raw assets.
 
-### Meeting → Database Pipeline
+* **Full-Featured Markdown Workspace (Collection Notes)**: Create structured personal notes explicitly bound to specific operational contexts, featuring full WYSIWYG editing with markdown support (headings, tables, task lists, code blocks, images, YouTube embeds).
+* **Intelligent Note Distillation (Drag-to-Distill)**: Drag an existing old note or document into your current workspace, and the system automatically extracts the core insights into a dense citation block, seamlessly aggregating scattered ideas without manual rewriting.
+* **AI Image Ingestion**: One click prompts the AI to generate a precise contextual text description, weaving visual data into your markdown memory map for vector indexing. Supports image pasting, drag-and-drop, and resizing with inline captions.
+* **Audio Scribing & Tri-Fold Pipeline**: Upload recordings or record live meetings/lectures via WebSockets. Transcription (STT) can be handled via the embedded local engine or flexible external API endpoints. The system then generates a structured tri-fold artifact: *Summary* (semantic synthesis), *To-Do List/Action Items*, and *Detail* (deep-dive information extraction that filters conversational noise while preserving core intent).
+* **Hot Words**: Manage custom vocabulary libraries for domain-specific terminology to improve transcription accuracy.
 
-When you transcribe a meeting, SinkDuce captures everything: the transcript with speaker diarization, auto-generated detail/summary/action items, and speaker notes. With one click, you allocate the meeting content to a Project Database:
+### 📥 02. Sink: Anti-Hoarding Ingestion Pipeline
 
-![Meeting to Database](screenshots/meeting-ingest.jpg)
+**Sink** ensures that your data is cleanly separated and contextually enriched.
 
-The meeting's transcript, summary, and notes become searchable documents in the project collection. You can also bulk-ingest multiple meetings at once, mapping each meeting's content to the relevant project section.
+* **Context-Isolated Collections**: Spin up separate, secure vector database collections (via Qdrant) for different enterprise projects or university courses, strictly eliminating cross-context data pollution.
+* **Multi-Project Segment-Level Semantic Router**: Meetings and lectures often drift across topics. Sinkduce automatically compares text segments against active Collection summaries, splitting a single audio transcript and routing distinct conversation shards into their respective collections.
+* **Granular Document Parsing & Chunking**: Utilizes the natively embedded parsing engine (supporting 12 format parsers) or links to powerful cloud parsing APIs (e.g., *MinerU*). Supports advanced **Parent-Child chunking** by headings, paragraphs, and max token configurations while keeping word boundaries intact.
+* **Context Enrichment Engine**: When enabled, an LLM evaluates each split chunk and injects its missing global context, mitigating the "chunk isolation" effect during retrieval.
+* **Auto-Summarization & Consolidation**: Every document gets a structured summary. Collections get consolidated overviews with automatic conflict detection when documents contradict each other.
 
-### Project Database
+### 🧠 03. Educe: High-Dimensional Contextual Reasoning
 
-Each project gets its own collection with independent chunking and embedding configs. Upload contracts, proposals, spreadsheets, and more — the system automatically parses, chunks, enriches with context, and indexes everything.
+**Educe** implements a cutting-edge retrieval architecture to turn cold data into active intelligence.
 
-![Project Database](screenshots/project-database.jpg)
+* **Advanced Hybrid Retrieval**: Supports dense vector similarity search, keyword-semantic hybrid querying (BM25 + Dense via Qdrant), and advanced **Reranking** algorithms to surface top-tier context.
+* **Iterative Agentic RAG Pipeline**: Moves far beyond naïve single-shot semantic search. Sinkduce orchestrates a multi-step Agentic loop: *Analyze → Route → Retrieve → Grade → Decompose → Rerank → Synthesize* until it locks onto the exact underlying truth.
+* **Multi-Collection Federated Search**: Context isolation does not limit high-dimensional synthesis. Users can choreograph inquiries spanning multiple explicit Collections simultaneously, harmonizing cross-domain shards via top-level reasoning.
+* **Absolute Source Traceability (3-Layer Traceability)**: Build bulletproof trust in AI answers by drilling straight to the raw text. Instantly inspect the source lineage across three deep-dive levels: the specific *Vector Chunk*, the *Full-Text Context*, or the *Original Source File*.
+* **Recall Evaluation**: Built-in benchmarking with adjustable parameters to evaluate retrieval recall and precision.
+* **Local MCP Interface**: Features an open Model Context Protocol (MCP) server interface. Seamlessly connect Sinkduce to external autonomous agent frameworks (e.g., Claude Code, Cursor, Hermes), enabling you to **chat with your curated knowledge anywhere**. (Prototype, to be optimized in future release.)
 
-**Auto-summarization**: Every document gets a structured summary (data points, facts, insights). Collections get consolidated overviews with automatic conflict detection when documents contradict each other.
+## 🔒 Model Configurations & Data Security
 
-### AI Chat
+Sinkduce adopts a pluggable and decoupled model architecture, fully managed and configured through the Web UI with **zero manual YAML configuration files** required.
 
-Chat with your project data across collections. The Agentic RAG pipeline handles query analysis, multi-collection retrieval, reranking, and iterative refinement — all with streaming responses.
+* **Embedded Local Services**: Core parsing and speech-to-text (FunASR SenseVoiceSmall) engines are natively embedded directly into the local environment, ensuring basic processing can happen completely offline by default.
+* **Full Customization via OpenAI Protocols**: Key model layers—including **LLM (reasoning)**, **Embedding (vector generation)**, and **Rerank (re-ranking algorithm)**—fully adhere to the standard `OpenAI Compatible` API protocol. Global concurrency control can be limited via `max_concurrent_requests`.
+* **Seamless Bridge to Advanced Providers**: Users can effortlessly plug in API keys from leading commercial cloud model providers (such as OpenAI, Anthropic, DeepSeek, Google, or DashScope) and advanced cloud parsers (like MinerU) for hyper-complex cross-document synthesis.
+* **Air-Gapped Privacy Shield**: For proprietary enterprise logs or confidential data, users can point all custom model parameters to local open-source setups (e.g., via Ollama, LM Studio, or vLLM running weights locally). In this setup, Sinkduce runs entirely air-gapped, ensuring sensitive data never leaves your infrastructure.
 
-![Chat](screenshots/chat.jpg)
+*All credentials and API keys are stored locally in `data/config.yaml` (gitignored, never committed).*
 
-## Features
+## ⚙️ Environment Variables
 
-### Meeting Transcription
+All optional. Copy `.env.template` to `.env` to customize ports:
 
-![Meeting Summary](screenshots/meeting-summary.jpg)
+| **Variable**       | **Default** | **Description**      |
+| ------------------ | ----------- | -------------------- |
+| `API_PORT`         | `18900`     | Backend port         |
+| `UI_PORT`          | `5173`      | Vite dev server port |
+| `QDRANT_HTTP_PORT` | `6343`      | Qdrant HTTP          |
+| `QDRANT_GRPC_PORT` | `6334`      | Qdrant gRPC          |
 
-- **File transcription** — upload recordings for offline transcription with automatic speaker identification
-- **Real-time transcription** — WebSocket streaming for live meetings
-- **Local models** — FunASR SenseVoiceSmall works fully offline, no cloud required
-- **Cloud providers** — DashScope FunASR, OpenAI-compatible APIs
-- **Auto-generated summaries** — detail, summary, and action items extracted by LLM
-- **Meeting notes** — structured meeting documentation
-- **Hot words** — custom vocabulary libraries for domain-specific terminology
+## 🔌 MCP Server Interface
 
-![Realtime](screenshots/meeting-realtime.jpg)
+> *Prototype, to be optimized in future release.*
 
-### RAG Pipeline
-
-- **Agentic RAG** — Analyze → Route → Retrieve → Grade → Decompose → Rerank → Synthesize
-- **Hybrid search** — dense vector + sparse BM25 via Qdrant
-- **Streaming responses** — SSE-based real-time chat output
-- **Reranking** — Cohere, Qwen, or local models via OpenAI-compatible API
-- **Recall evaluation** — built-in benchmarking with adjustable parameters
-
-![Evaluation](screenshots/evaluation.jpg)
-
-### Platform
-
-- **Provider system** — pluggable LLM / Embedding / Reranker / Transcription backends
-- **OpenAI-compatible** — works with OpenAI, DeepSeek, Qwen, Ollama, vLLM, LM Studio, etc.
-- **Zero-config** — all settings via Web UI, no manual YAML editing
-- **MCP server** — expose RAG as tools for AI agents
-- **Task queue** — async document processing with global LLM concurrency control
-
-![Settings](screenshots/setting.jpg)
-
-### Collection Notes
-
-SinkDuce includes a built-in WYSIWYG note editor within each collection, allowing you to draft, organize, and cross-reference notes alongside your indexed documents.
-
-- **Rich text editor** — full WYSIWYG editing with markdown support (headings, tables, task lists, code blocks, images, YouTube embeds)
-- **Drag-to-distill** — drag any collection document onto a note to automatically generate an AI-summarized "distill block" with the document's key points
-- **Image support** — paste, drag-and-drop, or upload images with resize (percentage-based), alignment (left/center/right), and inline captions
-- **Import/Export** — import `.md` files as new notes, export notes as markdown files
-- **Propagation** — when a source note is updated, push changes to all downstream notes that reference it via distill blocks
-- **Side-by-side view** — see your note alongside its references and backlinks in a 3-panel layout
-
-![Notes](screenshots/notes.jpg)
-
-## Architecture
-
-```
-frontend/          React 19 + Vite + Tailwind CSS + Shadcn UI
-src/
-  api/             FastAPI routes
-  db/              Qdrant client
-  mcp/             MCP server
-  parsers/         12 format parsers
-  providers/       LLM, Embedding, Reranker, Transcription
-  rag/             Chunker, Retriever, Agent, Reranker, Summary Manager
-  meeting/         Meeting model, transcription, routes
-  hot_words/       Vocabulary library management
-  tasks/           Async task queue with concurrency control
-data/              Runtime data (gitignored)
-```
-
-## Recommended Setup
-
-The project is optimized for [Alibaba Cloud Bailian (百炼)](https://bailian.console.aliyun.com/) platform:
-
-- **Transcription** — Bailian FunASR (optimized adaptation)
-- **Reranker** — Qwen3-Reranker via Bailian API
-
-We recommend configuring Bailian API as the primary provider for the best out-of-the-box experience. More provider adaptations will be added in future releases.
-
-## Configuration
-
-Fully managed through **Settings** page. No manual config files.
-
-- **LLM** — any OpenAI-compatible endpoint, configure `max_concurrent_requests` for parallelism
-- **Embedding** — remote APIs (auto-detect dimensions) or local sentence-transformers
-- **Reranker** — Cohere, Qwen DashScope, or local via OpenAI-compatible
-- **Transcription** — device selection (CPU/GPU), cloud provider API keys
-
-API keys are stored locally in `data/config.yaml` (gitignored, never committed).
-
-## API
-
-| Endpoint | Description |
-|----------|-------------|
-| `/api/query` | Chat with SSE streaming |
-| `/api/documents` | Upload, parse, list, delete |
-| `/api/collections` | Collection CRUD |
-| `/api/config` | Provider & settings management |
-| `/api/recall` | Recall evaluation & benchmarking |
-| `/api/info` | Summaries, conflicts, project descriptions |
-| `/api/meetings` | Meeting CRUD, transcription, notes |
-| `/hot-words` | Vocabulary library management |
-
-`GET /health → {"status": "ok"}`
-
-## MCP Server
-
-SinkDuce ships with a built-in [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes the full RAG pipeline as tools for AI coding agents. Use it with Claude Code, Cursor, or any MCP-compatible client to query your knowledge bases directly from your IDE.
+Sinkduce ships with a built-in [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes the full Agentic RAG pipeline as tools for AI coding agents. Use it with Claude Code, Cursor, or any MCP-compatible client to query your knowledge bases directly from your IDE.
 
 ### Quick Setup (Claude Code)
 
 Add to your Claude Code MCP settings (`~/.claude/settings.json` or project-level `.claude/settings.json`):
 
-```json
+JSON
+
+```
 {
   "mcpServers": {
     "sinkduce": {
@@ -200,44 +130,40 @@ Add to your Claude Code MCP settings (`~/.claude/settings.json` or project-level
 
 The MCP server uses **stdio** transport — Claude Code launches it as a subprocess and communicates via stdin/stdout. No port needed.
 
-### Available Tools
+### Available MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| **`list_collections`** | List all knowledge bases with chunk counts |
-| **`create_collection`** | Create a new collection (sensible defaults) |
-| **`get_collection_config`** | Get full collection configuration |
-| **`update_collection_config`** | Update collection settings (partial update) |
-| **`delete_collection`** | Delete a collection and all its documents |
-| **`list_documents`** | List documents in a collection |
-| **`upload_document`** | Upload a document for async indexing |
-| **`upload_folder`** | Batch-import documents from a server directory |
-| **`delete_document`** | Remove a document and its chunks |
-| **`get_task_status`** | Check async task progress |
-| **`rag_query`** | Ask a question — Agentic RAG with source citations |
-| **`search_chunks`** | Raw chunk retrieval with relevance scores |
-| **`get_query_history`** | Retrieve past query history |
-| **`get_collection_summary`** | LLM-generated collection overview |
-| **`get_project_description`** | Short description of a collection |
-| **`get_doc_summary`** | Structured summary of a document |
-| **`get_conflicts`** | Detect contradictions across documents |
-| **`trigger_consolidate`** | Rebuild collection-level summaries |
+* **`list_collections`** / **`create_collection`** / **`delete_collection`**: Knowledge base CRUD operations.
+* **`get_collection_config`** / **`update_collection_config`**: Manage specific chunking and embedding settings.
+* **`list_documents`** / **`upload_document`** / **`delete_document`**: Document lifecycle management.
+* **`upload_folder`**: Batch-import documents from a server directory.
+* **`get_task_status`**: Check async parsing and indexing queue progress.
+* **`rag_query`**: Multi-collection Agentic RAG query with source citations.
+* **`search_chunks`**: Raw vector / hybrid chunk retrieval with relevance scores.
+* **`get_doc_summary`** / **`get_collection_summary`** / **`get_conflicts`**: Access high-level summaries and data contradictions.
 
-## Environment Variables
+## 🛠️ Tech Stack & Architecture
 
-All optional. Copy `.env.template` to `.env`:
+### Backend & Frontend Stack
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `API_PORT` | `18900` | Backend port |
-| `UI_PORT` | `5173` | Vite dev server port |
-| `QDRANT_HTTP_PORT` | `6343` | Qdrant HTTP |
-| `QDRANT_GRPC_PORT` | `6334` | Qdrant gRPC |
+Python 3.11+, FastAPI, React 19, Vite, TypeScript, Tailwind CSS, Qdrant, FunASR, Zustand, Shadcn UI.
 
-## Tech Stack
+### Directory Layout
 
-Python 3.11+, FastAPI, React 19, Vite, TypeScript, Tailwind CSS, Qdrant, FunASR, Zustand
+```
+frontend/          React 19 + Vite + Tailwind CSS + Shadcn UI
+src/
+  api/             FastAPI routes
+  db/              Qdrant client
+  mcp/             MCP server
+  parsers/         12 format parsers (including embedded & MinerU cloud integration)
+  providers/       LLM, Embedding, Reranker, Transcription backends
+  rag/             Chunker, Retriever, Agent, Reranker, Summary Manager
+  meeting/         Meeting model, transcription pipelines, routes
+  hot_words/       Vocabulary library management
+  tasks/           Async task queue with global LLM concurrency control
+data/              Runtime data, database, configs (gitignored)
+```
 
-## License
+## 🗺️ Future Roadmap
 
-MIT — see [LICENSE](LICENSE).
+* [ ] Multi-tenant server deployment architecture for collaborative team project memory (Enterprise Release).

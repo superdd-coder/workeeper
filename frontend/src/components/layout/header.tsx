@@ -1,12 +1,11 @@
 import { useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { PanelLeft, Terminal } from "lucide-react"
+import { Terminal } from "lucide-react"
 import { useAppStore } from "@/stores/app-store"
 import { getHealth } from "@/api/client"
 
 export function Header() {
-  const { isOnline, setOnline, toggleSidebar, logPanelOpen, toggleLogPanel } = useAppStore()
+  const { isOnline, setOnline, logPanelOpen, toggleLogPanel } = useAppStore()
 
   useEffect(() => {
     const check = async () => {
@@ -23,32 +22,43 @@ export function Header() {
   }, [])
 
   return (
-    <header className="flex items-center gap-3 px-4 h-14 border-b border-border bg-background shrink-0">
-      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="shrink-0">
-        <PanelLeft className="h-5 w-5" />
-      </Button>
+    <header className="flex items-center h-[42px] border-b border-border shrink-0 bg-background">
+      {/* Left block aligned with sidebar width */}
+      <div className="w-[172px] px-4 flex items-center gap-3 shrink-0 border-r border-border h-full">
+        <h1
+          className="text-[13px] font-light tracking-[0.15em] uppercase"
+          style={{ fontFamily: "var(--font-serif)", color: "var(--ze-ink)" }}
+        >
+          SINKDUCE
+        </h1>
+      </div>
 
-      <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-        <img src="/favicon.png" alt="SinkDuce" className="h-6 w-6" />
-        SinkDuce
-      </h1>
+      {/* Right side of header */}
+      <div className="flex items-center gap-3.5 px-5 flex-1">
+        <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+          Spark. Sink. Educe.
+        </span>
 
-      <div className="flex-1" />
+        <div className="flex-1" />
 
-      <Button
-        variant={logPanelOpen ? "secondary" : "ghost"}
-        size="icon"
-        onClick={toggleLogPanel}
-        className="shrink-0"
-        title="Toggle backend logs"
-      >
-        <Terminal className="h-4 w-4" />
-      </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleLogPanel}
+          className="shrink-0 h-7 w-7 text-muted-foreground hover:text-primary"
+          title="Toggle backend logs"
+        >
+          <Terminal className="h-3.5 w-3.5" />
+        </Button>
 
-      <Badge variant={isOnline ? "default" : "destructive"} className="gap-1.5">
-        <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-green-400" : "bg-red-400"}`} />
-        {isOnline ? "online" : "offline"}
-      </Badge>
+        <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ background: isOnline ? "var(--ze-green)" : "#dc2626" }}
+          />
+          {isOnline ? "ONLINE" : "OFFLINE"}
+        </div>
+      </div>
     </header>
   )
 }

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 70" fill="none">
+  <!--
+    SinkDuce Logo — Concept 1: Converging Flow Lines
+    Two curved strokes forming a downward funnel, open at the apex.
+    Vertical center axis anchors the composition.
+    Represents: knowledge flowing inward and sinking deep (Sink).
+  -->
+
+  <!-- Left flowing curve -->
+  <path d="M30,10 Q38,30 50,50" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="round"/>
+
+  <!-- Right flowing curve -->
+  <path d="M70,10 Q62,30 50,50" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="round"/>
+
+  <!-- Vertical center axis — precision plumb line -->
+  <line x1="50" y1="55" x2="50" y2="70" stroke="#2A4D3E" stroke-width="0.6" stroke-linecap="round"/>
+</svg>

@@ -14,37 +14,46 @@ interface MeetingListProps {
 
 export function MeetingList({ meetings, activeMeeting, onSelect, onCreated, onDelete }: MeetingListProps) {
   return (
-    <div className="w-64 border-r border-border bg-sidebar-background flex flex-col shrink-0">
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <span className="text-sm font-medium">Meetings</span>
+    <div className="w-64 border-r border-border flex flex-col shrink-0" style={{ background: "var(--ze-bg)" }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+          Recordings
+        </span>
         <CreateMeetingButton onCreated={onCreated} />
       </div>
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {meetings.map((m) => (
-            <div
-              key={m.id}
-              className={cn(
-                "group flex items-start gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-accent transition-colors",
-                activeMeeting === m.id && "bg-accent font-medium"
-              )}
-              onClick={() => onSelect(m.id)}
-            >
-              <span className="flex-1 line-clamp-2 break-words leading-snug">{m.title}</span>
-              <button
-                className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(m.id) }}
+        <div className="px-4 py-2">
+          {meetings.map((m) => {
+            const isActive = activeMeeting === m.id
+            return (
+              <div
+                key={m.id}
+                className={cn(
+                  "group relative flex items-start gap-2 py-2.5 cursor-pointer transition-colors border-b border-dashed border-border",
+                  isActive ? "text-primary font-medium" : "hover:text-primary text-foreground",
+                )}
+                onClick={() => onSelect(m.id)}
               >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
+                {/* Active indicator */}
+                {isActive && (
+                  <span className="absolute left-[-16px] top-0 bottom-0 w-[1.5px] bg-primary" />
+                )}
+
+                <span className="flex-1 line-clamp-2 break-words leading-snug text-xs">{m.title}</span>
+                <button
+                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive bg-transparent border-none cursor-pointer p-0.5"
+                  onClick={(e) => { e.stopPropagation(); onDelete(m.id) }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            )
+          })}
           {meetings.length === 0 && (
-            <p className="text-xs text-muted-foreground px-3 py-4 text-center">No meetings yet</p>
+            <p className="text-xs text-muted-foreground py-4 text-center">No meetings yet</p>
           )}
         </div>
       </ScrollArea>
     </div>
   )
 }
-

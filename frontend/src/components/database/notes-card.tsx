@@ -11,6 +11,7 @@ import {
   type NoteListItem,
 } from "@/api/client"
 import { NoteEditorDialog } from "./note-editor-dialog"
+import { cn } from "@/lib/utils"
 
 interface NotesCardProps {
   collection: string
@@ -98,77 +99,118 @@ export function NotesCard({ collection }: NotesCardProps) {
   const renderNoteRow = (note: NoteListItem) => (
     <button
       key={note.id}
-      className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors text-sm group"
+      className="w-full text-left flex items-center justify-between py-2.5 border-b cursor-pointer transition-colors hover:opacity-80 border-b border-dashed border-border text-foreground"
+      style={{
+        background: "none",
+        borderLeft: "none",
+        borderRight: "none",
+        borderTop: "none",
+      }}
       onClick={() => setActiveNoteId(note.id)}
     >
-      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-      <span className="flex-1 truncate font-medium">{note.title}</span>
-      {note.is_extracted && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
-          extracted
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="text-xs truncate">{note.title}</span>
+        {note.is_extracted && (
+          <span
+            className="text-[9px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 shrink-0 text-primary"
+            style={{ background: "rgba(26,94,61,0.08)", borderRadius: "2px" }}
+          >
+            extracted
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ml-2">
+        <span
+          className={cn("w-1 h-1 rounded-full", note.is_extracted ? "bg-primary" : "bg-transparent")}
+        />
+        <span className="text-[10px] text-muted-foreground">
+          {formatDate(note.updated_at)}
         </span>
-      )}
-      <span className="text-xs text-muted-foreground shrink-0">
-        {formatDate(note.updated_at)}
-      </span>
+      </div>
     </button>
   )
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <StickyNote className="h-4 w-4" />
-            Notes
-          </CardTitle>
-          <div className="flex items-center gap-1.5">
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <FileDown className="h-4 w-4 mr-1.5" />
-              Import
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              New Note
-            </Button>
+      <div>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2.5">
+          <div
+            className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+          >
+            Notes · {notes.length}
           </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              Loading notes...
-            </div>
-          ) : notes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No notes yet. Create one to get started.</p>
-          ) : (
-            <Tabs defaultValue="unextracted">
-              <TabsList className="mb-2">
-                <TabsTrigger value="unextracted">
-                  Notes ({unextracted.length})
-                </TabsTrigger>
-                <TabsTrigger value="extracted">
-                  Extracted ({extracted.length})
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="unextracted">
-                {unextracted.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">All notes have been extracted.</p>
-                ) : (
-                  <div className="space-y-0.5">{unextracted.map(renderNoteRow)}</div>
-                )}
-              </TabsContent>
-              <TabsContent value="extracted">
-                {extracted.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">No extracted notes yet.</p>
-                ) : (
-                  <div className="space-y-0.5">{extracted.map(renderNoteRow)}</div>
-                )}
-              </TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80"
+              style={{
+                background: "none", border: "0.5px solid var(--color-border)",
+                padding: "3px 8px", borderRadius: "2px",
+                fontFamily: "var(--font-sans)",
+              }}
+              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
+            >
+              Import
+            </button>
+            <button
+              type="button"
+              onClick={handleCreate}
+              className="text-[9px] font-semibold uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-85"
+              style={{
+                background: "var(--color-primary)", color: "white", border: "none",
+                padding: "4px 10px", borderRadius: "2px", fontFamily: "var(--font-sans)",
+              }}
+              className="text-[9px] font-semibold uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-85"
+            >
+              + New Note
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading…</span>
+          </div>
+        ) : notes.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No notes yet. Create one to get started.</p>
+        ) : (
+          <Tabs defaultValue="unextracted">
+            <TabsList className="mb-2 bg-transparent p-0 gap-5 rounded-none border-b border-border">
+              <TabsTrigger
+                value="unextracted"
+                className="text-[10px] font-medium uppercase tracking-[0.12em] px-0 py-1.5 rounded-none border-b-2 bg-transparent data-[state=active]:shadow-none text-muted-foreground"
+                style={{ borderColor: "transparent" }}
+              >
+                Notes ({unextracted.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="extracted"
+                className="text-[10px] font-medium uppercase tracking-[0.12em] px-0 py-1.5 rounded-none border-b-2 bg-transparent data-[state=active]:shadow-none text-muted-foreground"
+                style={{ borderColor: "transparent" }}
+              >
+                Extracted ({extracted.length})
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="unextracted">
+              {unextracted.length === 0 ? (
+                <p className="text-xs py-2 text-muted-foreground">All notes have been extracted.</p>
+              ) : (
+                <div>{unextracted.map(renderNoteRow)}</div>
+              )}
+            </TabsContent>
+            <TabsContent value="extracted">
+              {extracted.length === 0 ? (
+                <p className="text-xs py-2 text-muted-foreground">No extracted notes yet.</p>
+              ) : (
+                <div>{extracted.map(renderNoteRow)}</div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
 
       {activeNoteId && (
         <NoteEditorDialog

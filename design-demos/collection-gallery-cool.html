@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SinkDuce — Collection · Gallery Cool</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FDFDFB;
+  --ink: #06120D;
+  --text: #1A2B23;
+  --muted: rgba(6, 18, 13, 0.45);
+  --green: #145239;
+  --line-a: rgba(42, 77, 62, 0.12);
+  --line-b: rgba(42, 77, 62, 0.6);
+  --line-c: rgba(42, 77, 62, 0.15);
+  --sans: 'Geist', -apple-system, sans-serif;
+  --serif: 'Source Serif 4', Georgia, serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* HEADER */
+.header { height: 40px; display: flex; align-items: center; padding: 0 20px; border-bottom: 0.5px solid var(--line-a); flex-shrink: 0; }
+.header-toggle { background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px; display: flex; align-items: center; }
+.header-toggle:hover { color: var(--ink); }
+.header-logo { font-size: 13px; font-weight: 600; color: var(--ink); margin-left: 12px; display: flex; align-items: center; gap: 6px; }
+.header-logo .dot { width: 16px; height: 16px; border-radius: 3px; background: var(--green); display: flex; align-items: center; justify-content: center; }
+.header-logo .dot-inner { width: 6px; height: 6px; background: white; border-radius: 1px; }
+.header-spacer { flex: 1; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.header-btn { background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px; display: flex; align-items: center; }
+.header-btn:hover { color: var(--ink); }
+.header-status { font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.header-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+
+.body { flex: 1; display: flex; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar { width: 160px; border-right: 0.5px solid var(--line-a); padding: 24px 16px; display: flex; flex-direction: column; flex-shrink: 0; }
+.nav-section { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.25em; color: var(--muted); margin-bottom: 12px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 12px; color: var(--muted); cursor: pointer; position: relative; transition: color 0.15s; }
+.nav-item:hover { color: var(--text); }
+.nav-item.active { color: var(--ink); font-weight: 500; }
+.nav-item.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 20px; height: 1.5px; background: var(--green); }
+.nav-icon { width: 14px; height: 14px; opacity: 0.4; }
+.nav-item.active .nav-icon { opacity: 1; }
+
+/* COLLECTION PANEL */
+.coll-panel { flex: 1; display: flex; overflow: hidden; }
+
+/* COLLECTION SIDEBAR */
+.coll-sidebar { width: 220px; border-right: 0.5px solid var(--line-a); padding: 28px 20px; display: flex; flex-direction: column; flex-shrink: 0; }
+.coll-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+.coll-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.25em; color: var(--muted); }
+.coll-new-btn { background: var(--green); color: white; border: none; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 5px 12px; border-radius: 2px; cursor: pointer; transition: opacity 0.15s; }
+.coll-new-btn:hover { opacity: 0.85; }
+.coll-list { display: flex; flex-direction: column; }
+.coll-item { padding: 10px 0; cursor: pointer; position: relative; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 0.5px dashed var(--line-c); transition: color 0.15s; }
+.coll-item:last-child { border-bottom: none; }
+.coll-item:hover { color: var(--ink); }
+.coll-name { font-size: 12px; color: var(--text); }
+.coll-count { font-size: 10px; color: var(--muted); font-weight: 500; }
+.coll-item.active .coll-name { color: var(--ink); font-weight: 500; }
+.coll-item.active::before { content: ''; position: absolute; left: -20px; top: 0; bottom: 0; width: 1.5px; background: var(--green); }
+.coll-actions { display: none; gap: 6px; }
+.coll-item:hover .coll-actions { display: flex; }
+.coll-action { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; }
+.coll-action:hover { color: var(--ink); }
+
+/* MAIN CONTENT */
+.main { flex: 1; overflow-y: auto; padding: 32px 40px; }
+
+/* SECTION HEADER */
+.section-header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 10px; border-bottom: 0.5px solid var(--line-b); margin-bottom: 24px; }
+.section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; color: var(--ink); }
+.section-meta { font-size: 10px; color: var(--muted); letter-spacing: 0.05em; }
+
+/* TABS */
+.tabs { display: flex; gap: 20px; margin-bottom: 28px; }
+.tab { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); cursor: pointer; padding: 6px 0; position: relative; transition: color 0.15s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--green); }
+.tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1.5px; background: var(--green); }
+
+/* STATS */
+.stats { display: flex; gap: 40px; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 0.5px dashed var(--line-c); }
+.stat { display: flex; flex-direction: column; }
+.stat-value { font-size: 28px; font-weight: 300; color: var(--ink); line-height: 1; }
+.stat-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); margin-top: 6px; }
+
+/* INFO BLOCK */
+.info-block { margin-bottom: 32px; }
+.info-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 10px; }
+.info-text { font-size: 13px; line-height: 1.8; color: var(--text); font-weight: 400; padding-left: 16px; border-left: 0.5px solid var(--line-b); }
+
+/* CONFLICTS */
+.conflict-header { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #B45309; margin-bottom: 10px; }
+.conflict-item { padding: 10px 0; border-bottom: 0.5px dashed var(--line-c); }
+.conflict-item:last-child { border-bottom: none; }
+.conflict-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+.conflict-meta { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* NOTES */
+.notes-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+.notes-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); }
+.notes-btn { background: var(--green); color: white; border: none; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 5px 12px; border-radius: 2px; cursor: pointer; }
+.note-item { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 0.5px dashed var(--line-c); cursor: pointer; transition: color 0.15s; }
+.note-item:last-child { border-bottom: none; }
+.note-item:hover { color: var(--green); }
+.note-title { font-size: 12px; color: var(--text); }
+.note-meta { font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.note-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+
+/* FILES LIST */
+.files-header { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 14px; }
+.file-item { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 0.5px dashed var(--line-c); }
+.file-item:last-child { border-bottom: none; }
+.file-name { font-size: 12px; color: var(--text); }
+.file-meta { font-size: 10px; color: var(--muted); display: flex; gap: 14px; align-items: center; }
+.file-chunks { color: var(--text); font-weight: 500; }
+.file-delete { color: var(--muted); cursor: pointer; font-size: 10px; opacity: 0; transition: opacity 0.15s; }
+.file-item:hover .file-delete { opacity: 1; }
+.file-delete:hover { color: #B91C1C; }
+
+/* UPLOAD ZONE */
+.upload-zone { margin-top: 24px; padding: 24px; border: 0.5px dashed var(--line-c); text-align: center; }
+.upload-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 4px; }
+.upload-hint { font-size: 11px; color: var(--muted); font-weight: 300; }
+
+/* CONFIG */
+.config-section { margin-bottom: 32px; }
+.config-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 12px; }
+.config-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 0.5px dashed var(--line-c); }
+.config-key { font-size: 12px; color: var(--text); }
+.config-val { font-size: 12px; color: var(--muted); font-family: monospace; }
+
+.main::-webkit-scrollbar { width: 3px; }
+.main::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb { background: var(--line-a); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <button class="header-toggle">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+  </button>
+  <div class="header-logo"><div class="dot"><div class="dot-inner"></div></div>SinkDuce</div>
+  <div class="header-spacer"></div>
+  <div class="header-actions">
+    <button class="header-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></button>
+    <div class="header-status"><div class="header-dot"></div> ONLINE</div>
+  </div>
+</div>
+
+<div class="body">
+  <!-- MAIN NAV SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-section">Navigate</div>
+    <div class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Chat
+    </div>
+    <div class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      Collection
+    </div>
+    <div class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Recall
+    </div>
+    <div class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+      Meeting
+    </div>
+    <div class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09c-.658.003-1.25.396-1.51 1z"/></svg>
+      Settings
+    </div>
+  </div>
+
+  <div class="coll-panel">
+    <!-- COLLECTION SIDEBAR -->
+    <div class="coll-sidebar">
+      <div class="coll-header">
+        <div class="coll-label">Collections</div>
+        <button class="coll-new-btn">+ New</button>
+      </div>
+      <div class="coll-list">
+        <div class="coll-item active">
+          <span class="coll-name">法务资料库</span>
+          <span class="coll-count">12</span>
+          <div class="coll-actions">
+            <button class="coll-action">✏</button>
+            <button class="coll-action">🗑</button>
+          </div>
+        </div>
+        <div class="coll-item">
+          <span class="coll-name">技术文档</span>
+          <span class="coll-count">28</span>
+          <div class="coll-actions">
+            <button class="coll-action">✏</button>
+            <button class="coll-action">🗑</button>
+          </div>
+        </div>
+        <div class="coll-item">
+          <span class="coll-name">产品需求</span>
+          <span class="coll-count">8</span>
+          <div class="coll-actions">
+            <button class="coll-action">✏</button>
+            <button class="coll-action">🗑</button>
+          </div>
+        </div>
+        <div class="coll-item">
+          <span class="coll-name">会议纪要</span>
+          <span class="coll-count">15</span>
+          <div class="coll-actions">
+            <button class="coll-action">✏</button>
+            <button class="coll-action">🗑</button>
+          </div>
+        </div>
+        <div class="coll-item">
+          <span class="coll-name">市场分析</span>
+          <span class="coll-count">6</span>
+          <div class="coll-actions">
+            <button class="coll-action">✏</button>
+            <button class="coll-action">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+      <!-- Section header -->
+      <div class="section-header">
+        <div class="section-title">法务资料库</div>
+        <div class="section-meta">Updated 2h ago · 1,847 chunks</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active">Info</div>
+        <div class="tab">Files</div>
+        <div class="tab">Config</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value">12</div>
+          <div class="stat-label">Documents</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">1,847</div>
+          <div class="stat-label">Chunks</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">384</div>
+          <div class="stat-label">Dimensions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Notes</div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="info-block">
+        <div class="info-label">Summary</div>
+        <div class="info-text">
+          本集合包含公司法务部门的核心合同文档、法律顾问意见书及相关补充协议。用于合同条款查询、合规审查及风险评估。涵盖 2023-2024 年度所有主合同及其补充协议。
+        </div>
+      </div>
+
+      <!-- Conflicts -->
+      <div class="info-block">
+        <div class="conflict-header">⚠ Conflicts · 2</div>
+        <div class="conflict-item">
+          <div class="conflict-text">违约金上限在主合同 (20%) 与补充协议 (15%) 中存在差异，以补充协议为准</div>
+          <div class="conflict-meta">合同第三章 §12.1 vs 补充协议 §3.2</div>
+        </div>
+        <div class="conflict-item">
+          <div class="conflict-text">不可抗力条款适用范围在两个版本中不一致，建议以最新版本为准</div>
+          <div class="conflict-meta">合同第四章 §15 vs 补充协议 §4.2</div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="info-block">
+        <div class="notes-header">
+          <div class="notes-label">Notes · 3</div>
+          <button class="notes-btn">+ New Note</button>
+        </div>
+        <div class="note-item">
+          <span class="note-title">违约责任条款分析</span>
+          <span class="note-meta"><span class="note-dot"></span> 2h ago</span>
+        </div>
+        <div class="note-item">
+          <span class="note-title">知识产权归属总结</span>
+          <span class="note-meta"><span class="note-dot"></span> 1d ago</span>
+        </div>
+        <div class="note-item">
+          <span class="note-title">合同续签注意事项</span>
+          <span class="note-meta"><span class="note-dot"></span> 3d ago</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

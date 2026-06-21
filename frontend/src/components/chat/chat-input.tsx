@@ -43,11 +43,7 @@ export function ChatInput() {
   const fileRef = useRef<HTMLInputElement>(null)
   const collectionMenuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    fetchCollections()
-  }, [fetchCollections])
-
-  // Persist chat params to localStorage (skip NaN sentinel values)
+  useEffect(() => { fetchCollections() }, [fetchCollections])
   useEffect(() => { localStorage.setItem("chat_useAgent", JSON.stringify(useAgent)) }, [useAgent])
   useEffect(() => { localStorage.setItem("chat_searchMode", JSON.stringify(searchMode)) }, [searchMode])
   useEffect(() => { if (!isNaN(topK)) localStorage.setItem("chat_topK", JSON.stringify(topK)) }, [topK])
@@ -78,7 +74,6 @@ export function ChatInput() {
     const text = input.trim()
     if (!text || isStreaming) return
     setInput("")
-    // Use IDs for API calls, fallback to all collection IDs if none selected
     const cols = selectedCollections.length > 0
       ? selectedCollections
       : collections.map(c => c.id)
@@ -92,10 +87,7 @@ export function ChatInput() {
   }
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
   const handleFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,24 +107,25 @@ export function ChatInput() {
     : `${selectedCollections.length} collection${selectedCollections.length !== 1 ? "s" : ""}`
 
   return (
-    <div className="border-t border-border bg-background p-4">
-      <div className="max-w-3xl mx-auto space-y-2">
-        {/* Main toolbar: essential controls only */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+    <div className="border-t border-border p-3 px-12">
+      <div className="max-w-3xl mx-auto space-y-2.5">
+        {/* Toolbar */}
+        <div className="flex items-center gap-4 flex-wrap text-[10px] font-medium uppercase tracking-[0.1em]">
+          {/* Collection selector */}
           <div className="relative" ref={collectionMenuRef}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
+            <button
+              type="button"
+              className={`flex items-center gap-1.5 cursor-pointer bg-transparent border-none font-sans transition-colors ${selectedCollections.length > 0 ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              style={{ fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" }}
               onClick={() => setShowCollections(!showCollections)}
             >
-              <Layers className="h-3 w-3 mr-1" />
+              <Layers className="h-3 w-3" />
               {collectionLabel}
-            </Button>
+            </button>
             {showCollections && (
-              <div className="absolute z-50 bottom-full left-0 mb-1 w-56 rounded-md border bg-popover shadow-md p-2 space-y-1 max-h-60 overflow-y-auto">
+              <div className="absolute z-50 bottom-full left-0 mb-1 w-56 rounded-md p-2 space-y-1 max-h-60 overflow-y-auto bg-popover border border-border shadow-md">
                 {collections.map((col) => (
-                  <label key={col.id} className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded hover:bg-accent">
+                  <label key={col.id} className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded hover:bg-accent text-foreground">
                     <input
                       type="checkbox"
                       checked={selectedCollections.includes(col.id)}
@@ -146,42 +139,49 @@ export function ChatInput() {
             )}
           </div>
 
-          <Button
-            variant={useAgent ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs"
+          <div className="w-px h-3 bg-border" />
+
+          {/* Agent toggle — solid dark green when ON */}
+          <button
+            type="button"
+            className={`flex items-center gap-1.5 cursor-pointer border-none font-sans transition-all ${useAgent ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:text-primary"}`}
+            style={{ fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", padding: useAgent ? "3px 8px" : "0", borderRadius: "2px" }}
             onClick={() => {
               const next = !useAgent
               setUseAgent(next)
-              if (next) {
-                setUseReranker(true)  // agentic requires reranker
-              }
+              if (next) setUseReranker(true)
             }}
-            title={useAgent ? "Agentic RAG ON — uses LLM to analyze, route, and iterate" : "Agentic RAG OFF — direct retrieval"}
+            title={useAgent ? "Agentic RAG ON" : "Agentic RAG OFF — direct retrieval"}
           >
-            <Bot className="h-3 w-3 mr-1" />
+            <Bot className="h-3 w-3" />
             {useAgent ? "Agent" : "Direct"}
-          </Button>
+          </button>
 
+          {/* Reranker — solid dark green when ON */}
           <button
-            disabled={useAgent}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-7 px-3 gap-1.5 ${
+            type="button"
+            className={`cursor-pointer border-none font-sans transition-all ${
               useAgent
-                ? "bg-primary text-primary-foreground shadow-sm cursor-not-allowed opacity-80"
+                ? "bg-primary text-primary-foreground cursor-not-allowed"
                 : useReranker
-                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                  : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-transparent text-muted-foreground hover:text-primary"
             }`}
+            style={{ fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", padding: (useAgent || useReranker) ? "3px 8px" : "0", borderRadius: "2px" }}
+            disabled={useAgent}
             onClick={() => { if (!useAgent) setUseReranker(!useReranker) }}
             title={useAgent ? "Reranker is required for Agentic RAG" : "Toggle reranker"}
           >
             Rerank
           </button>
 
+          <div className="w-px h-3 bg-border" />
+
+          {/* Provider/Model selects */}
           {readyProviders.length > 0 && (
             <>
               <select
-                className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                className="text-[10px] font-medium uppercase tracking-[0.08em] px-2 py-1 bg-transparent border border-border rounded-sm text-muted-foreground cursor-pointer font-sans outline-none hover:text-primary focus:border-border"
                 value={activeProvider ?? ""}
                 onChange={(e) => {
                   const val = e.target.value || null
@@ -199,7 +199,7 @@ export function ChatInput() {
 
               {activeProvider && availableModels.length >= 1 && (
                 <select
-                  className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                  className="text-[10px] font-medium uppercase tracking-[0.08em] px-2 py-1 bg-transparent border border-border rounded-sm text-muted-foreground cursor-pointer font-sans outline-none hover:text-primary focus:border-border"
                   value={activeModel ?? ""}
                   onChange={(e) => setActiveModel(e.target.value || null)}
                 >
@@ -211,128 +211,76 @@ export function ChatInput() {
             </>
           )}
 
-          {/* Settings button */}
-          <Sheet>
-            <SheetTrigger render={<Button variant="ghost" size="sm" className="h-7 text-xs ml-auto" />}>
-              <Settings className="h-3 w-3 mr-1" />
-              Settings
-            </SheetTrigger>
-            <SheetContent side="right" className="sm:max-w-sm">
-              <SheetHeader>
-                <SheetTitle>Chat Settings</SheetTitle>
-              </SheetHeader>
-              <div className="px-4 pb-4 space-y-4 overflow-y-auto flex-1">
-                {/* Search Mode */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium">Search Mode</label>
-                  <select
-                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
-                    value={searchMode}
-                    onChange={(e) => setSearchMode(e.target.value)}
-                  >
-                    <option value="dense">Dense — vector similarity</option>
-                    <option value="hybrid">Hybrid — vector + BM25 keyword</option>
-                  </select>
-                </div>
-
-                {/* TopK */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium">Top K — chunks to retrieve</label>
-                  <input
-                    type="number" min={1} max={50} value={isNaN(topK) ? "" : topK}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      if (v === "") { setTopK(NaN); return }
-                      const n = parseInt(v)
-                      if (!isNaN(n)) setTopK(Math.max(1, Math.min(50, n)))
-                    }}
-                    onBlur={() => { if (isNaN(topK)) setTopK(5) }}
-                    className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
-                  />
-                </div>
-
-                {/* Rerank Top K */}
-                {useReranker && (
+          {/* Settings */}
+          <div className="ml-auto">
+            <Sheet>
+              <SheetTrigger render={<Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" />}>
+                <Settings className="h-3.5 w-3.5" />
+              </SheetTrigger>
+              <SheetContent side="right" className="sm:max-w-sm">
+                <SheetHeader>
+                  <SheetTitle>Chat Settings</SheetTitle>
+                </SheetHeader>
+                <div className="px-4 pb-4 space-y-4 overflow-y-auto flex-1">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium">Rerank Top K — results after reranking</label>
-                    <input
-                      type="number" min={1} max={50} value={isNaN(rerankTopK) ? "" : rerankTopK}
-                      onChange={(e) => {
-                        const v = e.target.value
-                        if (v === "") { setRerankTopK(NaN); return }
-                        const n = parseInt(v)
-                        if (!isNaN(n)) setRerankTopK(Math.max(1, Math.min(50, n)))
-                      }}
-                      onBlur={() => { if (isNaN(rerankTopK)) setRerankTopK(5) }}
+                    <label className="text-xs font-medium">Search Mode</label>
+                    <select className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs" value={searchMode} onChange={(e) => setSearchMode(e.target.value)}>
+                      <option value="dense">Dense — vector similarity</option>
+                      <option value="hybrid">Hybrid — vector + BM25 keyword</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium">Top K — chunks to retrieve</label>
+                    <input type="number" min={1} max={50} value={isNaN(topK) ? "" : topK}
+                      onChange={(e) => { const v = e.target.value; if (v === "") { setTopK(NaN); return } const n = parseInt(v); if (!isNaN(n)) setTopK(Math.max(1, Math.min(50, n))) }}
+                      onBlur={() => { if (isNaN(topK)) setTopK(5) }}
                       className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
                     />
                   </div>
-                )}
-
-                {/* Similarity Threshold — hidden for hybrid mode */}
-                {searchMode !== "hybrid" && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium">
-                      Similarity Threshold — {minScore.toFixed(2)}
-                    </label>
-                    <input
-                      type="range" min={0} max={1} step={0.05} value={minScore}
-                      onChange={(e) => setMinScore(parseFloat(e.target.value))}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                      <span>0.00 (all results)</span>
-                      <span>1.00 (exact match)</span>
+                  {useReranker && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Rerank Top K</label>
+                      <input type="number" min={1} max={50} value={isNaN(rerankTopK) ? "" : rerankTopK}
+                        onChange={(e) => { const v = e.target.value; if (v === "") { setRerankTopK(NaN); return } const n = parseInt(v); if (!isNaN(n)) setRerankTopK(Math.max(1, Math.min(50, n))) }}
+                        onBlur={() => { if (isNaN(rerankTopK)) setRerankTopK(5) }}
+                        className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
+                      />
                     </div>
-                  </div>
-                )}
-
-                {/* Max Iterations (agent only) */}
-                {useAgent && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium">Max Iterations — agentic RAG loops</label>
-                    <input
-                      type="number" min={1} max={10} value={isNaN(maxIterations) ? "" : maxIterations}
-                      onChange={(e) => {
-                        const v = e.target.value
-                        if (v === "") { setMaxIterations(NaN); return }
-                        const n = parseInt(v)
-                        if (!isNaN(n)) setMaxIterations(Math.max(1, Math.min(10, n)))
-                      }}
-                      onBlur={() => { if (isNaN(maxIterations)) setMaxIterations(3) }}
-                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
-                    />
-                  </div>
-                )}
-
-              </div>
-            </SheetContent>
-          </Sheet>
+                  )}
+                  {searchMode !== "hybrid" && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Similarity Threshold — {minScore.toFixed(2)}</label>
+                      <input type="range" min={0} max={1} step={0.05} value={minScore} onChange={(e) => setMinScore(parseFloat(e.target.value))} className="w-full" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>0.00 (all results)</span>
+                        <span>1.00 (exact match)</span>
+                      </div>
+                    </div>
+                  )}
+                  {useAgent && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Max Iterations</label>
+                      <input type="number" min={1} max={10} value={isNaN(maxIterations) ? "" : maxIterations}
+                        onChange={(e) => { const v = e.target.value; if (v === "") { setMaxIterations(NaN); return } const n = parseInt(v); if (!isNaN(n)) setMaxIterations(Math.max(1, Math.min(10, n))) }}
+                        onBlur={() => { if (isNaN(maxIterations)) setMaxIterations(3) }}
+                        className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
 
         {/* Input area */}
-        <div className="flex items-end gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            multiple
-            accept=".pdf,.txt,.md,.docx,.xlsx,.pptx"
-            className="hidden"
-            onChange={handleFileAttach}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 mb-1"
-            onClick={() => fileRef.current?.click()}
-            disabled={isStreaming}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
+        <div className="flex items-end gap-3">
+          <input ref={fileRef} type="file" multiple accept=".pdf,.txt,.md,.docx,.xlsx,.pptx" className="hidden" onChange={handleFileAttach} />
 
           <textarea
-            className="flex-1 resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring min-h-[44px] max-h-[160px]"
-            placeholder="Ask a question..."
+            className="flex-1 resize-none border-0 border-b border-border px-0 py-2.5 text-sm min-h-[40px] max-h-[120px] outline-none bg-transparent leading-[1.7] focus:border-primary"
+            style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", color: "var(--ze-text)", borderRadius: 0 }}
+            placeholder="Ask about your documents…"
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -340,14 +288,22 @@ export function ChatInput() {
             disabled={isStreaming}
           />
 
-          <Button
-            size="icon"
-            className="shrink-0 mb-1 rounded-xl"
+          <button
+            type="button"
+            className="shrink-0 flex items-center gap-1.5 cursor-pointer transition-opacity border-none text-white font-sans"
+            style={{
+              background: "var(--ze-green)",
+              fontSize: "10px", fontWeight: 600,
+              textTransform: "uppercase", letterSpacing: "0.12em",
+              padding: "8px 16px", borderRadius: "2px",
+              opacity: !input.trim() || isStreaming ? 0.3 : 1,
+            }}
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
           >
-            <Send className="h-4 w-4" />
-          </Button>
+            Send
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+          </button>
         </div>
       </div>
     </div>

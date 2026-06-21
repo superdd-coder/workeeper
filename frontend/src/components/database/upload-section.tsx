@@ -51,106 +51,122 @@ export function UploadSection({ hasActiveTasks, tasks, allowedFileTypes, onUploa
   }
 
   return (
-    <div className="space-y-3">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Files
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <input
-            ref={fileRef}
-            type="file"
-            multiple
-            accept={acceptAttr}
-            className="hidden"
-            onChange={(e) => { onUpload(e.target.files); if (fileRef.current) fileRef.current.value = "" }}
-          />
-          <div
-            className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => fileRef.current?.click()}
-            onDrop={(e) => { e.preventDefault(); onUpload(e.dataTransfer.files) }}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <p className="text-sm font-medium">
-              {hasActiveTasks ? "Processing... Upload more" : "Click or drag files here"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">{typesLabel}</p>
+    <div className="space-y-6">
+      {/* Upload zone */}
+      <div>
+        <div
+          className="text-[9px] font-semibold uppercase tracking-[0.2em] mb-2.5 text-muted-foreground"
+        >
+          Upload Files
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          accept={acceptAttr}
+          className="hidden"
+          onChange={(e) => { onUpload(e.target.files); if (fileRef.current) fileRef.current.value = "" }}
+        />
+        <div
+          className="p-6 text-center cursor-pointer transition-colors hover:opacity-80 border border-dashed border-border"
+          onClick={() => fileRef.current?.click()}
+          onDrop={(e) => { e.preventDefault(); onUpload(e.dataTransfer.files) }}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          <div className="text-[10px] font-medium uppercase tracking-[0.15em] mb-1 text-muted-foreground">
+            {hasActiveTasks ? "Processing… Upload more" : "Drop files to upload"}
           </div>
-        </CardContent>
-      </Card>
+          <div className="text-[11px] text-muted-foreground" style={{ opacity: 0.7 }}>
+            {typesLabel}
+          </div>
+        </div>
+      </div>
 
+      {/* Task queue */}
       {tasks.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <RotateCw className="h-4 w-4" />
-                Upload Queue
-                {hasActiveTasks && (
-                  <Badge variant="secondary" className="ml-2">
-                    {tasks.filter((t) => t.status === "processing").length} processing
-                  </Badge>
-                )}
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClearCompleted}
-                disabled={!tasks.some((t) => t.status === "completed" || t.status === "failed")}
-              >
-                Clear Completed
-              </Button>
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <div
+              className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+            >
+              Upload Queue
+              {hasActiveTasks && (
+                <span className="ml-2 font-normal opacity-60">
+                  · {tasks.filter((t) => t.status === "processing").length} processing
+                </span>
+              )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {tasks.map((task) => (
-                <div key={task.id} className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <TaskStatusIcon status={task.status} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{task.filename}</p>
-                      <p className="text-xs text-muted-foreground">{task.message}</p>
-                    </div>
-                    {task.status === "completed" && task.result && (
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {task.result.chunks_count} chunks
-                      </Badge>
-                    )}
-                    {task.status === "processing" && onCancelTask && (
-                      <Button
-                        variant="ghost" size="icon" className="h-7 w-7 shrink-0"
-                        onClick={() => onCancelTask(task.id)}
-                        title="Stop processing"
-                      >
-                        <StopCircle className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
-                    {task.status === "failed" && onRetryTask && (
-                      <Button
-                        variant="ghost" size="icon" className="h-7 w-7 shrink-0"
-                        onClick={() => onRetryTask(task.id)}
-                        title="Retry"
-                      >
-                        <RefreshCw className="h-4 w-4 text-blue-500" />
-                      </Button>
+            <button
+              type="button"
+              onClick={handleClearCompleted}
+              disabled={!tasks.some((t) => t.status === "completed" || t.status === "failed")}
+              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80"
+              style={{
+                background: "none",
+                border: "0.5px solid var(--color-border)",
+                padding: "3px 8px",
+                borderRadius: "2px",
+                fontFamily: "var(--font-sans)",
+                opacity: tasks.some((t) => t.status === "completed" || t.status === "failed") ? 1 : 0.3,
+              }}
+              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
+            >
+              Clear
+            </button>
+          </div>
+
+          <div>
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                className="py-2.5 border-b border-b border-dashed border-border"
+              >
+                <div className="flex items-center gap-3">
+                  <TaskStatusIcon status={task.status} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate text-foreground">{task.filename}</p>
+                    {task.message && (
+                      <p className="text-[11px] text-muted-foreground">{task.message}</p>
                     )}
                   </div>
-                  {task.status === "processing" && (
-                    <Progress value={task.progress} className="h-1" />
+                  {task.status === "completed" && task.result && (
+                    <span className="text-[10px] font-medium shrink-0 text-primary">
+                      {task.result.chunks_count} chunks
+                    </span>
                   )}
-                  {task.status === "failed" && task.error && (
-                    <p className="text-xs text-red-500 pl-7">{task.error}</p>
+                  {task.status === "processing" && onCancelTask && (
+                    <button
+                      type="button"
+                      className="shrink-0 cursor-pointer text-muted-foreground"
+                      style={{ background: "none", border: "none" }}
+                      onClick={() => onCancelTask(task.id)}
+                      title="Stop"
+                    >
+                      <StopCircle className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {task.status === "failed" && onRetryTask && (
+                    <button
+                      type="button"
+                      className="shrink-0 cursor-pointer text-muted-foreground"
+                      style={{ background: "none", border: "none" }}
+                      onClick={() => onRetryTask(task.id)}
+                      title="Retry"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
                   )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                {task.status === "processing" && (
+                  <Progress value={task.progress} className="h-0.5 mt-2" />
+                )}
+                {task.status === "failed" && task.error && (
+                  <p className="text-[11px] mt-1 pl-7" style={{ color: "#dc2626" }}>{task.error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )

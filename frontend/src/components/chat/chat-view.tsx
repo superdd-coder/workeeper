@@ -3,7 +3,7 @@ import { useAppStore } from "@/stores/app-store"
 import { MessageBubble } from "./message-bubble"
 import { ChatInput } from "./chat-input"
 import { SourceDetailPanel } from "./source-detail-panel"
-import { MessageSquare, PanelRightClose } from "lucide-react"
+import { PanelRightClose } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getLLMProviders } from "@/api/client"
 import type { Source } from "@/stores/app-store"
@@ -55,13 +55,20 @@ export function ChatView() {
         <div className={`flex flex-col flex-1 min-w-0 ${selectedSource ? "hidden sm:flex" : ""}`}>
           <div className="flex-1 overflow-y-auto">
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 py-20">
-                <MessageSquare className="h-12 w-12 opacity-30" />
-                <p className="text-lg font-medium">Ask a question about your documents</p>
-                <p className="text-sm">Upload documents first, then start chatting</p>
+              <div
+                className="flex flex-col items-center justify-center h-full gap-2 py-20"
+                style={{ color: "var(--ze-muted)" }}
+              >
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: "var(--ze-ink)", fontFamily: "var(--font-serif)" }}
+                >
+                  Ask a question about your documents
+                </p>
+                <p className="text-xs">Upload documents first, then start chatting</p>
               </div>
             ) : (
-              <div className="max-w-3xl mx-auto py-4 px-4">
+              <div className="max-w-3xl mx-auto py-4 px-12">
                 {messages.map((msg) => (
                   <MessageBubble
                     key={msg.id}

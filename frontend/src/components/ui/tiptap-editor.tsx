@@ -802,8 +802,8 @@ function createDistillBlockExtension(onNavigate?: (noteId: string) => void) {
         dom.setAttribute("data-loading", node.attrs.loading ? "true" : "false")
         dom.className = "distill-block"
         dom.style.cssText = `
-          border: 1px solid #90caf9; border-left: 4px solid #1976d2;
-          border-radius: 6px; margin: 12px 0; background: #f8fbff;
+          border: 1px solid rgba(26,94,61,0.2); border-left: 4px solid #1A5E3D;
+          border-radius: 4px; margin: 12px 0; background: rgba(26,94,61,0.03);
           overflow: hidden; position: relative;
         `
         dom.contentEditable = "false"
@@ -818,7 +818,7 @@ function createDistillBlockExtension(onNavigate?: (noteId: string) => void) {
         const header = document.createElement("div")
         header.style.cssText = `
           display: flex; align-items: center; gap: 6px; padding: 6px 10px;
-          background: #e3f2fd; border-bottom: 1px solid #bbdefb; font-size: 12px;
+          background: rgba(26,94,61,0.06); border-bottom: 1px solid rgba(26,94,61,0.12); font-size: 12px;
         `
 
         const handle = document.createElement("span")
@@ -834,7 +834,7 @@ function createDistillBlockExtension(onNavigate?: (noteId: string) => void) {
 
         const link = document.createElement("span")
         link.textContent = `📎 ${node.attrs.sourceTitle}`
-        link.style.cssText = `color: #1565c0; text-decoration: none; flex: 1; font-weight: 500; cursor: pointer;`
+        link.style.cssText = `color: #1A5E3D; text-decoration: none; flex: 1; font-weight: 500; cursor: pointer;`
         link.addEventListener("click", (e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -853,7 +853,7 @@ function createDistillBlockExtension(onNavigate?: (noteId: string) => void) {
         const badge = document.createElement("span")
         badge.textContent = node.attrs.sourceNoteId?.slice(-3) || "?"
         badge.style.cssText = `
-          background: #1976d2; color: white; border-radius: 3px;
+          background: #1A5E3D; color: white; border-radius: 2px;
           padding: 1px 5px; font-size: 10px; font-weight: 600;
         `
 
@@ -903,8 +903,7 @@ function createDistillBlockExtension(onNavigate?: (noteId: string) => void) {
             <div style="display: flex; align-items: center; gap: 8px; color: #666;">
               <div class="loading-spinner" style="
                 width: 16px; height: 16px; border: 2px solid #e0e0e0;
-                border-top: 2px solid #1976d2; border-radius: 50%;
-                animation: spin 1s linear infinite;
+                border-top: 2px solid #1A5E3D; border-radius: 50%;                animation: spin 1s linear infinite;
               "></div>
               <span>⏳ Distilling content from "${node.attrs.sourceTitle}"...</span>
             </div>
@@ -935,10 +934,10 @@ function createDistillBlockExtension(onNavigate?: (noteId: string) => void) {
           display: none;
           width: 100%;
           padding: 6px;
-          background: linear-gradient(transparent, #f8fbff);
+          background: linear-gradient(transparent, rgba(26,94,61,0.03));
           border: none;
-          border-top: 1px solid #e3f2fd;
-          color: #1976d2;
+          border-top: 1px solid rgba(26,94,61,0.12);
+          color: #1A5E3D;
           font-size: 12px;
           cursor: pointer;
           text-align: center;
@@ -970,8 +969,7 @@ function createDistillBlockExtension(onNavigate?: (noteId: string) => void) {
                 <div style="display: flex; align-items: center; gap: 8px; color: #666;">
                   <div style="
                     width: 16px; height: 16px; border: 2px solid #e0e0e0;
-                    border-top: 2px solid #1976d2; border-radius: 50%;
-                    animation: spin 1s linear infinite;
+                    border-top: 2px solid #1A5E3D; border-radius: 50%;                    animation: spin 1s linear infinite;
                   "></div>
                   <span>⏳ Distilling content from "${updatedNode.attrs.sourceTitle}"...</span>
                 </div>
@@ -1072,7 +1070,7 @@ function createCalloutExtension() {
         dom.setAttribute("data-callout-type", node.attrs.type)
 
         const colors: Record<string, { bg: string; border: string; icon: string }> = {
-          info: { bg: "#e3f2fd", border: "#1976d2", icon: "💡" },
+          info: { bg: "rgba(26,94,61,0.06)", border: "#1A5E3D", icon: "💡" },
           warning: { bg: "#fff3e0", border: "#f57c00", icon: "⚠️" },
           success: { bg: "#e8f5e9", border: "#388e3c", icon: "✅" },
           error: { bg: "#ffebee", border: "#d32f2f", icon: "❌" },

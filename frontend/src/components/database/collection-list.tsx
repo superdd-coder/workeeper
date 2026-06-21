@@ -1,12 +1,11 @@
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Plus, Trash2, Pencil } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import type { CollectionItem } from "@/stores/app-store"
 
 interface CollectionListProps {
   collections: CollectionItem[]
-  activeCollection: string  // Now stores ID
+  activeCollection: string
   onSelect: (id: string) => void
   onCreate: () => void
   onDelete: (id: string) => void
@@ -15,42 +14,91 @@ interface CollectionListProps {
 
 export function CollectionList({ collections, activeCollection, onSelect, onCreate, onDelete, onRename }: CollectionListProps) {
   return (
-    <div className="w-56 border-r border-border bg-sidebar-background flex flex-col shrink-0">
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <span className="text-sm font-medium">Collections</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onCreate}>
-          <Plus className="h-4 w-4" />
-        </Button>
+    <div
+      className="w-[220px] border-r flex flex-col shrink-0 border-border bg-background"
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-5 py-4 border-b border-border"
+      >
+        <span
+          className="text-[9px] font-semibold uppercase tracking-[0.25em] text-muted-foreground"
+        >
+          Collections
+        </span>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="text-[9px] font-semibold uppercase tracking-[0.1em] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-85"
+          style={{
+            borderRadius: "2px",
+            fontFamily: "var(--font-sans)",
+          }}
+          className="text-[9px] font-semibold uppercase tracking-[0.1em] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-85 bg-primary text-primary-foreground border-none"
+        >
+          + New
+        </button>
       </div>
+
+      {/* List */}
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {collections.map((col) => (
-            <div
-              key={col.id}
-              className={cn(
-                "group flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer hover:bg-accent transition-colors",
-                activeCollection === col.id && "bg-accent font-medium"
-              )}
-              onClick={() => onSelect(col.id)}
-            >
-              <span className="flex-1 truncate">{col.name}</span>
-              {col.points_count > 0 && (
-                <span className="text-xs text-muted-foreground">{col.points_count}</span>
-              )}
-              <button
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-                onClick={(e) => { e.stopPropagation(); onRename(col.id) }}
+        <div className="px-5 py-3">
+          {collections.map((col) => {
+            const isActive = activeCollection === col.id
+            return (
+              <div
+                key={col.id}
+                className={cn(
+                  "group relative py-2.5 cursor-pointer flex items-center justify-between border-b transition-colors border-b border-dashed border-border",
+                  isActive ? "text-foreground" : "text-foreground/80",
+                )}
+                onClick={() => onSelect(col.id)}
               >
-                <Pencil className="h-3 w-3" />
-              </button>
-              <button
-                className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(col.id) }}
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
+                {/* Active indicator */}
+                {isActive && (
+                  <span
+                    className="absolute left-[-20px] top-0 bottom-0 w-[1.5px] bg-primary"
+                  />
+                )}
+
+                <span className={cn("text-xs truncate flex-1", isActive ? "font-medium" : "font-normal")}>
+                  {col.name}
+                </span>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {col.points_count > 0 && (
+                    <span
+                      className="text-[10px] font-medium text-muted-foreground"
+                    >
+                      {col.points_count}
+                    </span>
+                  )}
+
+                  {/* Hover actions */}
+                  <div className="hidden group-hover:flex items-center gap-1 ml-1">
+                    <button
+                      type="button"
+                      className="p-0.5 cursor-pointer text-muted-foreground"
+                      style={{ background: "none", border: "none" }}
+                      onClick={(e) => { e.stopPropagation(); onRename(col.id) }}
+                      title="Rename"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      className="p-0.5 cursor-pointer text-muted-foreground"
+                      style={{ background: "none", border: "none" }}
+                      onClick={(e) => { e.stopPropagation(); onDelete(col.id) }}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </ScrollArea>
     </div>

@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Loader2, FileWarning, BookOpen, Mic, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { cn } from "@/lib/utils"
 import { useAppStore } from "@/stores/app-store"
 import {
   getCollectionSummary,
@@ -24,28 +22,31 @@ interface InfoPanelProps {
   collection: string
 }
 
+/* Editorial section header */
+function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("text-[9px] font-semibold uppercase tracking-[0.2em] mb-2.5 text-muted-foreground", className)}>
+      {children}
+    </div>
+  )
+}
+
 export function InfoPanel({ collection }: InfoPanelProps) {
-  // Summary state
   const [summary, setSummary] = useState<string | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [consolidating, setConsolidating] = useState(false)
   const [consolidatingCollection, setConsolidatingCollection] = useState<string | null>(null)
-
-  // Project description state
   const [projectDescription, setProjectDescription] = useState<string | null>(null)
-
-  // Conflicts state
   const [conflicts, setConflicts] = useState<ConflictItem[]>([])
   const [conflictsLoading, setConflictsLoading] = useState(false)
   const [selectedConflict, setSelectedConflict] = useState<ConflictItem | null>(null)
-
-  // Meeting log state
   const [meetings, setMeetings] = useState<MeetingLogItem[]>([])
   const [meetingsLoading, setMeetingsLoading] = useState(false)
+  const [notesCount, setNotesCount] = useState(0)
+  const [docCount, setDocCount] = useState(0)
 
   const { setSidebarView, setActiveMeeting, setPendingOpenFile } = useAppStore()
 
-  // Reset state when collection changes — but keep consolidating if from active-task check
   useEffect(() => {
     setSummary(null)
     setProjectDescription(null)
@@ -54,18 +55,14 @@ export function InfoPanel({ collection }: InfoPanelProps) {
     setConsolidating(false)
     setConsolidatingCollection(null)
     setSelectedConflict(null)
-    // Check if consolidation is already running for this collection
     getActiveCollectionTasks(collection).then((res) => {
       if (res.consolidating) {
         setConsolidating(true)
         setConsolidatingCollection(collection)
       }
-    }).catch((err) => {
-      console.warn("Failed to check active tasks:", err)
-    })
+    }).catch(() => {})
   }, [collection])
 
-  // Poll for consolidation completion when consolidating state is active
   useEffect(() => {
     if (!consolidating || consolidatingCollection !== collection) return
     const poll = setInterval(async () => {
@@ -75,15 +72,12 @@ export function InfoPanel({ collection }: InfoPanelProps) {
           clearInterval(poll)
           setConsolidating(false)
           setConsolidatingCollection(null)
-          // Refresh data
           fetchSummary()
           fetchProjectDescription()
           fetchConflicts()
           fetchMeetings()
         }
-      } catch {
-        // ignore polling errors
-      }
+      } catch { /* ignore */ }
     }, 2000)
     return () => clearInterval(poll)
   }, [consolidating, consolidatingCollection, collection])
@@ -132,6 +126,13 @@ export function InfoPanel({ collection }: InfoPanelProps) {
     fetchProjectDescription()
     fetchConflicts()
     fetchMeetings()
+    // Fetch stats
+    if (collection) {
+      import("@/api/client").then(({ getNotes, getFiles }) => {
+        getNotes(collection).then(r => setNotesCount(r.notes?.length ?? 0)).catch(() => setNotesCount(0))
+        getFiles(collection).then(r => setDocCount(r.files?.length ?? 0)).catch(() => setDocCount(0))
+      })
+    }
   }, [fetchSummary, fetchConflicts, fetchMeetings])
 
   const fetchProjectDescription = useCallback(async () => {
@@ -150,10 +151,8 @@ export function InfoPanel({ collection }: InfoPanelProps) {
     try {
       const res = await triggerConsolidation(collection)
       toast.info(`Consolidation started for ${collection}...`)
-
-      // Poll task status until completion
       const taskId = res.task?.id
-      const targetCollection = collection // capture for callback
+      const targetCollection = collection
       if (taskId) {
         const poll = setInterval(async () => {
           try {
@@ -165,7 +164,6 @@ export function InfoPanel({ collection }: InfoPanelProps) {
               setConsolidatingCollection(null)
               if (task.status === "completed") {
                 toast.success(`Consolidation complete for ${targetCollection}`)
-                // Only refresh if user is still viewing the same collection
                 if (collection === targetCollection) {
                   fetchSummary()
                   fetchProjectDescription()
@@ -176,9 +174,7 @@ export function InfoPanel({ collection }: InfoPanelProps) {
                 toast.error(`Consolidation failed: ${task.error || "unknown error"}`)
               }
             }
-          } catch {
-            // ignore polling errors
-          }
+          } catch { /* ignore */ }
         }, 2000)
       } else {
         setConsolidating(false)
@@ -200,9 +196,7 @@ export function InfoPanel({ collection }: InfoPanelProps) {
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
+        year: "numeric", month: "short", day: "numeric",
       })
     } catch {
       return dateStr
@@ -210,156 +204,158 @@ export function InfoPanel({ collection }: InfoPanelProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      {/* Stats row */}
+      <div className="flex gap-10 pb-5 border-b border-dashed border-border">
+        <div className="flex flex-col">
+          <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{docCount}</span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Documents</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{meetings.length > 0 || meetingsLoading ? meetings.length : "—"}</span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Recordings</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{notesCount}</span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Notes</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{conflicts.length}</span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Conflicts</span>
+        </div>
+      </div>
+
       {/* Project Description */}
       {consolidating ? (
-        <blockquote className="border-l-4 border-primary/30 pl-4 py-1 text-sm text-muted-foreground italic flex items-center gap-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-          Updating...
-        </blockquote>
+        <div className="flex items-center gap-2 text-sm italic text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Updating…
+        </div>
       ) : projectDescription && (
-        <blockquote className="border-l-4 border-primary/30 pl-4 py-1 text-sm text-muted-foreground italic">
+        <div
+          className="text-sm leading-[1.8] pl-4 border-l italic text-foreground border-border"
+          style={{ fontFamily: "var(--font-serif)" }}
+        >
           {projectDescription}
-        </blockquote>
+        </div>
       )}
 
-      {/* Summary Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Summary
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
+      {/* Summary */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <SectionLabel>Summary</SectionLabel>
+          <button
+            type="button"
             onClick={handleConsolidate}
             disabled={consolidating && consolidatingCollection === collection}
+            className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 bg-primary text-primary-foreground border-none"
+            style={{
+              padding: "4px 10px",
+              borderRadius: "2px",
+              fontFamily: "var(--font-sans)",
+            }}
           >
-            {consolidating ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-1.5" />
-            )}
+            {consolidating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
             Consolidate
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {consolidating ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <p className="text-sm">Consolidating collection summary...</p>
-            </div>
-          ) : summaryLoading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              Loading summary...
-            </div>
-          ) : summary ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-pre:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {summary}
-              </ReactMarkdown>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No summary yet. Upload files and consolidate.</p>
-          )}
-        </CardContent>
-      </Card>
+          </button>
+        </div>
 
-      {/* Conflicts Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileWarning className="h-4 w-4" />
-            Conflicts
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {consolidating ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              Updating conflicts...
+        {consolidating ? (
+          <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Consolidating…</span>
+          </div>
+        ) : summaryLoading ? (
+          <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading…</span>
+          </div>
+        ) : summary ? (
+          <div
+            className="text-sm leading-[1.8] pl-4 border-l prose prose-sm max-w-none prose-p:my-1 text-foreground border-border"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">No summary yet. Upload files and consolidate.</p>
+        )}
+      </div>
+
+      {/* Conflicts */}
+      {conflicts.length > 0 && (
+        <div>
+          <SectionLabel className="!text-amber-600">
+            ⚠ Conflicts · {conflicts.length}
+          </SectionLabel>
+          {conflictsLoading ? (
+            <div className="flex items-center gap-2 py-4 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs">Loading…</span>
             </div>
-          ) : conflictsLoading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              Loading conflicts...
-            </div>
-          ) : conflicts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No conflicts detected.</p>
           ) : (
-            <div className="space-y-2">
+            <div>
               {conflicts.map((conflict, i) => (
                 <button
                   key={i}
-                  className="w-full text-left border border-border rounded-lg p-3 hover:bg-accent/50 transition-colors"
+                  type="button"
+                  className="w-full text-left py-2.5 border-b cursor-pointer transition-opacity hover:opacity-80 border-b border-dashed border-border"
+                  style={{ background: "none", borderLeft: "none", borderRight: "none", borderTop: "none" }}
                   onClick={() => setSelectedConflict(conflict)}
                 >
-                  <div className="flex items-start gap-2 text-sm">
-                    <span className="flex-1 min-w-0">
-                      <span className="text-amber-600 dark:text-amber-400">{conflict.content1}</span>
-                      <span className="text-muted-foreground"> ({conflict.source1})</span>
-                    </span>
-                    <span className="text-muted-foreground shrink-0">vs</span>
-                    <span className="flex-1 min-w-0">
-                      <span className="text-amber-600 dark:text-amber-400">{conflict.content2}</span>
-                      <span className="text-muted-foreground"> ({conflict.source2})</span>
-                    </span>
+                  <div className="text-xs leading-relaxed text-foreground">
+                    <span style={{ color: "#B45309" }}>{conflict.content1}</span>
+                    <span className="text-muted-foreground"> ({conflict.source1})</span>
+                    <span className="text-muted-foreground" style={{ margin: "0 6px" }}>vs</span>
+                    <span style={{ color: "#B45309" }}>{conflict.content2}</span>
+                    <span className="text-muted-foreground"> ({conflict.source2})</span>
                   </div>
                 </button>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      <Separator />
-
-      {/* Notes Section */}
+      {/* Notes */}
       <NotesCard collection={collection} />
 
-      <Separator />
-
-      {/* Meeting Log Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Mic className="h-4 w-4" />
-            Meeting Log
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Meeting Log */}
+      {meetings.length > 0 && (
+        <div>
+          <SectionLabel>Recording Log · {meetings.length}</SectionLabel>
           {meetingsLoading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              Loading meetings...
+            <div className="flex items-center gap-2 py-4 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs">Loading…</span>
             </div>
-          ) : meetings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No meetings linked.</p>
           ) : (
-            <div className="space-y-1">
+            <div>
               {meetings.map((meeting) => (
-                <div key={meeting.id} className="rounded-lg border border-border p-2">
+                <div
+                  key={meeting.id}
+                  className="py-2.5 border-b border-b border-dashed border-border"
+                >
                   <button
-                    className="w-full text-left flex items-center gap-3 hover:bg-accent/50 transition-colors text-sm rounded"
+                    type="button"
+                    className="w-full text-left flex items-center gap-3 cursor-pointer transition-opacity hover:opacity-80 text-foreground"
+                    style={{ background: "none", border: "none" }}
                     onClick={() => handleMeetingClick(meeting)}
                   >
-                    <Mic className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1 truncate font-medium">{meeting.title}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">
+                    <span className="text-xs flex-1 truncate">{meeting.title}</span>
+                    <span className="text-[10px] shrink-0 text-muted-foreground">
                       {formatDate(meeting.created_at)}
                     </span>
                   </button>
                   {meeting.file_ids && meeting.file_ids.length > 0 && (
-                    <div className="ml-7 mt-1 space-y-0.5">
+                    <div className="ml-4 mt-1">
                       {meeting.file_ids.map((fid) => (
                         <button
                           key={fid}
-                          className="block text-xs text-muted-foreground hover:text-primary hover:underline truncate w-full text-left"
-                          onClick={() => {
-                            setPendingOpenFile(fid)
-                          }}
+                          type="button"
+                          className="block text-[11px] truncate w-full text-left cursor-pointer transition-colors text-muted-foreground"
+                          style={{ background: "none", border: "none" }}
+                          onClick={() => setPendingOpenFile(fid)}
                         >
                           {fid}
                         </button>
@@ -370,8 +366,8 @@ export function InfoPanel({ collection }: InfoPanelProps) {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       <ConflictViewerDialog
         conflict={selectedConflict}

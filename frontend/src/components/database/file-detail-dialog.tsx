@@ -1,13 +1,11 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, ChevronRight, ChevronDown, RefreshCw, Locate } from "lucide-react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { Loader2, ChevronRight, ChevronDown, RefreshCw } from "lucide-react"
+import { TiptapEditor } from "@/components/ui/tiptap-editor"
 import { getFilePreviewUrl, isPreviewable, getDocSummary, setDocSummaryInclude, generateDocSummary, getExtractedText, type ChunkDetail, type DocSummary } from "@/api/client"
 import { toast } from "sonner"
 
@@ -336,7 +334,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
               </TabsList>
 
               <TabsContent value="source" className="flex-1 overflow-hidden min-h-0">
-                <div className="flex-1 overflow-hidden rounded-lg border border-border h-full">
+                <div className="h-full overflow-hidden">
                   {loading || previewLoading ? (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -353,37 +351,28 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                     />
                   ) : previewContent !== null ? (
                     <ScrollArea className="h-full">
-                      <CardContent className="p-4">
-                        {source?.toLowerCase().endsWith(".md") ? (
-                          <div className="prose prose-sm max-w-none dark:prose-invert">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{previewContent}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          <div ref={textContentRef}>
-                            <HighlightedText
-                              text={previewContent}
-                              highlight={highlightText}
-                              offset={highlightOffset}
-                              chunkLength={highlightLength}
-                            />
-                          </div>
-                        )}
-                      </CardContent>
+                      <div className="p-4">
+                        <TiptapEditor
+                          value={previewContent}
+                          readonly
+                          showToolbar={false}
+                        />
+                      </div>
                     </ScrollArea>
                   ) : (
                     <ScrollArea className="h-full">
-                      <CardContent className="p-4 space-y-2">
+                      <div className="p-4 space-y-2">
                         {chunks.map((chunk, i) => (
                           <p key={i} className="text-sm leading-relaxed whitespace-pre-wrap">{chunk.text}</p>
                         ))}
-                      </CardContent>
+                      </div>
                     </ScrollArea>
                   )}
                 </div>
               </TabsContent>
 
               <TabsContent value="extracted" className="flex-1 overflow-hidden min-h-0">
-                <div className="flex-1 overflow-hidden rounded-lg border border-border h-full">
+                <div className="h-full overflow-hidden">
                   {extractedLoading ? (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -392,20 +381,13 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                   ) : extractedText !== null ? (
                     <ScrollArea className="h-full">
                       <div ref={extractedContentRef}>
-                        <CardContent className="p-4">
-                          {extractedFormat === "markdown" ? (
-                            <div className="prose prose-sm max-w-none dark:prose-invert">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{extractedText}</ReactMarkdown>
-                            </div>
-                          ) : (
-                            <HighlightedText
-                              text={extractedText}
-                              highlight={highlightText}
-                              offset={highlightOffset}
-                              chunkLength={highlightLength}
-                            />
-                          )}
-                        </CardContent>
+                        <div className="p-4">
+                          <TiptapEditor
+                            value={extractedText}
+                            readonly
+                            showToolbar={false}
+                          />
+                        </div>
                       </div>
                     </ScrollArea>
                   ) : (
@@ -417,9 +399,9 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
               </TabsContent>
 
               <TabsContent value="summary" className="flex-1 overflow-hidden min-h-0">
-                <div className="flex-1 overflow-hidden rounded-lg border border-border h-full">
+                <div className="h-full overflow-hidden">
                   <ScrollArea className="h-full">
-                    <CardContent className="p-4">
+                    <div className="p-4">
                       {isGenerating ? (
                         <div className="flex flex-col items-center justify-center py-8 gap-3 text-muted-foreground">
                           <Loader2 className="h-5 w-5 animate-spin" />
@@ -549,7 +531,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                           </Button>
                         </div>
                       )}
-                    </CardContent>
+                    </div>
                   </ScrollArea>
                 </div>
               </TabsContent>
@@ -560,7 +542,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
             <h4 className="text-sm font-medium mb-2 text-muted-foreground">Chunks</h4>
             <div className="flex-1 overflow-hidden rounded-lg border border-border">
               <ScrollArea className="h-full">
-                <CardContent className="p-4 space-y-3">
+                <div className="p-4 space-y-3">
                   {loading ? (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -590,9 +572,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                                   className="ml-auto p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                                   title="Locate in preview"
                                   onClick={(e) => { e.stopPropagation(); handleLocate(group.parent) }}
-                                >
-                                  <Locate className="h-3 w-3" />
-                                </button>
+                                />
                               </div>
                               <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground line-clamp-3">{group.parent.text}</p>
                             </div>
@@ -624,7 +604,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                                     {child.context && (
                                       <span className="text-[10px] text-muted-foreground italic">with context</span>
                                     )}
-                                    <Locate className="ml-auto h-3 w-3 text-muted-foreground shrink-0" />
+                                    
                                   </div>
                                   {child.context && (
                                     <div className="mb-2 pl-3 border-l-2 border-primary/30">
@@ -661,7 +641,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                           {chunk.context && (
                             <span className="text-[10px] text-muted-foreground italic">with context</span>
                           )}
-                          <Locate className="ml-auto h-3 w-3 text-muted-foreground shrink-0" />
+                          
                         </div>
                         {chunk.context && (
                           <div className="mb-2 pl-3 border-l-2 border-primary/30">
@@ -672,7 +652,7 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
                       </div>
                     ))
                   )}
-                </CardContent>
+                </div>
               </ScrollArea>
             </div>
           </div>

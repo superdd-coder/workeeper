@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { MarkdownEditor } from "@/components/ui/markdown-editor"
-import { Save, X, Sparkles, RefreshCw, Upload } from "lucide-react"
+import { Sparkles, RefreshCw, Upload } from "lucide-react"
 import { GeneratedContent } from "./generated-content"
-import { uploadMeetingNotes } from "@/api/client"
+import { uploadMeetingNotes, updateMeeting } from "@/api/client"
 import { toast } from "sonner"
 import type { TodoItem } from "@/api/client"
 
@@ -25,6 +25,8 @@ interface NotesEditorProps {
   onDirtyChange?: (dirty: boolean) => void
 }
 
+const SAVE_DELAY = 800
+
 export function NotesEditor({
   meetingId,
   notesContent,
@@ -43,45 +45,32 @@ export function NotesEditor({
 }: NotesEditorProps) {
   const [activeTab, setActiveTab] = useState("notes")
   const [draft, setDraft] = useState(notesContent)
-  const [dirty, setDirty] = useState(false)
   const notesInputRef = useRef<HTMLInputElement>(null)
-  const draftRef = useRef(draft)
-  const dirtyRef = useRef(dirty)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initializedRef = useRef(false)
   const prevMeetingIdRef = useRef(meetingId)
+  const baselineRef = useRef(notesContent)
 
-  // Sync dirty ref
+  // Notify parent of dirty state (no dirty tracking = never dirty)
   useEffect(() => {
-    dirtyRef.current = dirty
-    onDirtyChange?.(dirty)
-  }, [dirty, onDirtyChange])
-
-  // beforeunload guard
-  useEffect(() => {
-    if (!dirty) return
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-    }
-    window.addEventListener("beforeunload", handler)
-    return () => window.removeEventListener("beforeunload", handler)
-  }, [dirty])
+    onDirtyChange?.(false)
+  }, [onDirtyChange])
 
   // Reset when meeting changes
   if (prevMeetingIdRef.current !== meetingId) {
     prevMeetingIdRef.current = meetingId
     initializedRef.current = false
+    baselineRef.current = notesContent
   }
 
   useEffect(() => {
     setDraft(notesContent)
-    setDirty(false)
-    draftRef.current = notesContent
+    baselineRef.current = notesContent
   }, [notesContent])
 
   // Set default tab once when data loads
   useEffect(() => {
     if (initializedRef.current) return
-    // Wait until at least one piece of content has been resolved
     if (summary === undefined && detail === undefined && notesContent === undefined) return
     if (summary) {
       setActiveTab("summary")
@@ -91,31 +80,30 @@ export function NotesEditor({
     initializedRef.current = true
   }, [summary, detail, notesContent])
 
+  // Auto-save with debounce
+  const scheduleSave = useCallback((content: string) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await updateMeeting(meetingId, { notes: content })
+        baselineRef.current = content
+      } catch {
+        toast.error("Auto-save failed")
+      }
+    }, SAVE_DELAY)
+  }, [meetingId])
+
   const handleDraftChange = (value: string) => {
     setDraft(value)
-    draftRef.current = value
-    setDirty(true)
-  }
-
-  const handleTabChange = (newTab: string) => {
-    if (dirty && activeTab === "notes") {
-      toast.warning("You have unsaved notes. Save or discard before switching tabs.")
-      return
+    if (value !== baselineRef.current) {
+      scheduleSave(value)
     }
-    setActiveTab(newTab)
   }
 
-  const handleSave = () => {
-    onSaveNotes(draftRef.current)
-    setDirty(false)
-  }
-
-  const handleDiscard = () => {
-    setDraft(notesContent)
-    draftRef.current = notesContent
-    setDirty(false)
-    onDiscardNotes()
-  }
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
+  }, [])
 
   const handleUploadNotes = async (file: File) => {
     try {
@@ -142,7 +130,7 @@ export function NotesEditor({
           e.target.value = ""
         }}
       />
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between border-b border-border px-1">
           <TabsList>
             <TabsTrigger value="summary" disabled={!summary}>Summary</TabsTrigger>
@@ -187,19 +175,8 @@ export function NotesEditor({
               value={draft}
               onChange={handleDraftChange}
               minHeight="250px"
-              placeholder="Write your meeting notes here (Markdown supported)..."
-            >
-              {dirty && (
-                <>
-                  <Button size="sm" onClick={handleSave}>
-                    <Save className="h-3 w-3 mr-1" /> Save
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleDiscard}>
-                    <X className="h-3 w-3 mr-1" /> Discard
-                  </Button>
-                </>
-              )}
-            </MarkdownEditor>
+              placeholder="Write your recording notes here (Markdown supported)..."
+            />
           </div>
         </TabsContent>
       </Tabs>
