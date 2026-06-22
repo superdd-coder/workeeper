@@ -77,8 +77,6 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
     setExtractedText(null)
     setHighlightOffset(undefined)
     setHighlightPage(undefined)
-    setHighlightText("")
-    setHighlightLength(undefined)
     setActiveTab("source")
   }, [source])
 
@@ -141,8 +139,6 @@ export function FileDetailDialog({ collection, source, chunks, chunksTotal, load
   const handleLocate = useCallback((chunk: ChunkDetail) => {
     setHighlightOffset(chunk.char_offset)
     if (chunk.page_number !== undefined) setHighlightPage(chunk.page_number)
-    setHighlightText(chunk.text || "")
-    setHighlightLength(chunk.text?.length)
     // Navigate to extracted tab (offsets match chunk positions)
     setActiveTab("extracted")
   }, [])

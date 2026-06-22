@@ -29,12 +29,8 @@ export function CollectionList({ collections, activeCollection, onSelect, onCrea
         <button
           type="button"
           onClick={onCreate}
-          className="text-[9px] font-semibold uppercase tracking-[0.1em] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-85"
-          style={{
-            borderRadius: "2px",
-            fontFamily: "var(--font-sans)",
-          }}
           className="text-[9px] font-semibold uppercase tracking-[0.1em] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-85 bg-primary text-primary-foreground border-none"
+          style={{ borderRadius: "2px", fontFamily: "var(--font-sans)" }}
         >
           + New
         </button>

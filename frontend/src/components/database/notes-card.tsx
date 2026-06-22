@@ -142,13 +142,12 @@ export function NotesCard({ collection }: NotesCardProps) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80"
+              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
               style={{
                 background: "none", border: "0.5px solid var(--color-border)",
                 padding: "3px 8px", borderRadius: "2px",
                 fontFamily: "var(--font-sans)",
               }}
-              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
             >
               Import
             </button>
@@ -160,7 +159,6 @@ export function NotesCard({ collection }: NotesCardProps) {
                 background: "var(--color-primary)", color: "white", border: "none",
                 padding: "4px 10px", borderRadius: "2px", fontFamily: "var(--font-sans)",
               }}
-              className="text-[9px] font-semibold uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-85"
             >
               + New Note
             </button>

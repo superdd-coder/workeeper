@@ -97,7 +97,7 @@ export function UploadSection({ hasActiveTasks, tasks, allowedFileTypes, onUploa
               type="button"
               onClick={handleClearCompleted}
               disabled={!tasks.some((t) => t.status === "completed" || t.status === "failed")}
-              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80"
+              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
               style={{
                 background: "none",
                 border: "0.5px solid var(--color-border)",
@@ -106,7 +106,6 @@ export function UploadSection({ hasActiveTasks, tasks, allowedFileTypes, onUploa
                 fontFamily: "var(--font-sans)",
                 opacity: tasks.some((t) => t.status === "completed" || t.status === "failed") ? 1 : 0.3,
               }}
-              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
             >
               Clear
             </button>
