@@ -16,22 +16,45 @@ def _bbox_in_table(bbox: tuple, table_bboxes: list[tuple]) -> bool:
 
 
 def _table_data_to_markdown(data: list[list[str | None]]) -> str:
-    """Convert pdfplumber table data (list of lists) to markdown."""
+    """Convert pdfplumber table data (list of lists) to markdown.
+
+    Strips entirely empty rows and columns before rendering.
+    """
     if not data or not data[0]:
         return ""
 
-    cleaned = []
+    cleaned: list[list[str]] = []
     for row in data:
-        cleaned.append([str(c).replace("\n", " ").strip() if c else "" for c in row])
+        cells = [str(c).replace("\n", " ").strip() if c else "" for c in row]
+        # Skip entirely empty rows
+        if any(c for c in cells):
+            cleaned.append(cells)
 
+    if not cleaned:
+        return ""
+
+    # Pad to uniform column count
     num_cols = max(len(row) for row in cleaned)
-    header = cleaned[0]
+    for row in cleaned:
+        while len(row) < num_cols:
+            row.append("")
 
+    # Remove entirely empty columns
+    keep_cols: list[int] = []
+    for ci in range(num_cols):
+        if any(row[ci] for row in cleaned):
+            keep_cols.append(ci)
+
+    if not keep_cols:
+        return ""
+
+    pruned = [[row[ci] for ci in keep_cols] for row in cleaned]
+
+    header = pruned[0]
     lines = ["| " + " | ".join(header) + " |"]
     lines.append("| " + " | ".join("---" for _ in header) + " |")
-    for row in cleaned[1:]:
-        padded = [row[i] if i < len(row) else "" for i in range(num_cols)]
-        lines.append("| " + " | ".join(padded) + " |")
+    for row in pruned[1:]:
+        lines.append("| " + " | ".join(row) + " |")
     return "\n".join(lines)
 
 
