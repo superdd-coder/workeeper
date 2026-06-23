@@ -276,7 +276,7 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
           <CardTitle className="text-base">Allowed File Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">Restrict which file types can be uploaded. Leave empty to allow all.</p>
+          <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed">Restrict which file types can be uploaded. Leave empty to allow all.</p>
           <div className="flex flex-wrap gap-2">
             {FILE_TYPES.map((ft) => (
               <label
@@ -307,7 +307,7 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
           <CardTitle className="text-base">Contextual Enrichment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+          <label className="flex items-center gap-2 text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={contextualEnabled} onChange={(e) => setContextualEnabled(e.target.checked)} className="rounded" />
             Enable Contextual Enrichment
           </label>
@@ -318,7 +318,7 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
                 <Input value={contextualWindow} onChange={(e) => setContextualWindow(e.target.value)} placeholder="1" />
               </div>
               <Separator />
-              <p className="text-xs text-muted-foreground">
+              <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed">
                 Contextual enrichment generates background information for each chunk using an LLM, improving retrieval quality.
               </p>
             </>
@@ -331,12 +331,12 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
           <CardTitle className="text-base">Enriching LLM</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground mb-2">
+          <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed mb-2">
             LLM used for contextual enrichment during document ingestion. Leave empty to use the global default.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Provider</label>
+              <label className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">Provider</label>
               <select
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={enrichingLlmProvider}
@@ -354,7 +354,7 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Model</label>
+              <label className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">Model</label>
               <select
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={enrichingLlmModel}
@@ -377,16 +377,16 @@ export function CollectionConfig({ collection }: CollectionConfigProps) {
             <CardTitle className="text-base">Cloud Parsing (MinerU)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed">
               Use MinerU cloud API for document parsing. Produces higher quality Markdown output with better table, formula, and layout preservation.
               Configure MinerU API token in Settings.
             </p>
-            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+            <label className="flex items-center gap-2 text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground cursor-pointer">
               <input type="checkbox" checked={cloudParsing} onChange={(e) => setCloudParsing(e.target.checked)} className="rounded" />
               Enable Cloud Parsing for this Collection
             </label>
             {cloudParsing && (
-              <p className="text-xs text-muted-foreground">
+              <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed">
                 When enabled, uploaded documents will be parsed by MinerU's cloud API and chunked using a Markdown-aware strategy that preserves tables, code blocks, and heading structure.
               </p>
             )}

@@ -107,7 +107,7 @@ export function ThinkingSteps({ steps, metaInfo, isStreaming }: ThinkingStepsPro
           <ChevronRight className="h-3 w-3 text-muted-foreground" />
         )}
         <span
-          className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground"
+          className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80"
         >
           {isStreaming ? "Reasoning" : `Steps · ${totalSteps}`}
         </span>

@@ -209,7 +209,7 @@ export function DatabaseView() {
           <div className="h-full flex flex-col px-10 py-8 animate-tab-in">
             {/* Collection name header */}
             <div className="flex items-baseline justify-between mb-5">
-              <span className="text-[12px] font-semibold uppercase tracking-[0.15em] text-foreground">
+              <span className="text-[18px] font-[350] tracking-tight text-foreground">
                 {collections.find(c => c.id === activeCollection)?.name || activeCollection}
               </span>
               <span className="text-[10px] text-muted-foreground">
@@ -279,7 +279,7 @@ export function DatabaseView() {
                               <span className="shrink-0 flex items-center" style={{ width: "72px" }}>
                                 {file.file_type === "note" && (
                                   <span
-                                    className="text-[9px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 text-center w-full leading-normal"
+                                    className="text-[10px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 text-center w-full leading-normal"
                                     style={{
                                       background: "rgba(37,99,235,0.08)",
                                       color: "hsl(217.2 91.2% 59.8%)",
@@ -291,7 +291,7 @@ export function DatabaseView() {
                                 )}
                                 {file.has_meeting && (
                                   <span
-                                    className="text-[9px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 text-center w-full leading-normal"
+                                    className="text-[10px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 text-center w-full leading-normal"
                                     style={{
                                       background: "rgba(217,119,6,0.08)",
                                       color: "hsl(32.2 94.6% 43.7%)",

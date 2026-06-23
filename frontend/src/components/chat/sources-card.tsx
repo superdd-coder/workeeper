@@ -31,7 +31,7 @@ export function SourcesCard({ sources, onSelectSource, selectedSourceId }: Sourc
         className="flex items-center justify-between w-full mb-3 cursor-pointer"
       >
         <span
-          className="text-[9px] font-semibold uppercase tracking-[0.25em] text-muted-foreground"
+          className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80"
         >
           Sources · {sources.length}
         </span>

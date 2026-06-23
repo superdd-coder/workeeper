@@ -75,13 +75,13 @@ export function ProviderCard({ provider, onEdit, onRefresh }: ProviderCardProps)
       {/* Row 1: Provider name + status + default badge */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-light uppercase tracking-wider">{provider.name || "Unnamed"}</span>
+          <span className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">{provider.name || "Unnamed"}</span>
           <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
         </div>
         {provider.is_default && (
-          <Badge className="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 shrink-0">
+          <Badge className="text-[10px] font-medium uppercase tracking-[0.1em] bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 shrink-0">
             <Star className="h-3 w-3 mr-1" />
-            Default
+            DEFAULT
           </Badge>
         )}
       </div>
@@ -110,28 +110,28 @@ export function ProviderCard({ provider, onEdit, onRefresh }: ProviderCardProps)
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{provider.model || ""}</p>
+          <p className="font-normal text-[12px] text-muted-foreground/80">{provider.model || ""}</p>
         )}
       </div>
 
       {/* Row 3: URL */}
       <div className="min-h-[1rem]">
-        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+        <p className="font-normal text-[11px] text-muted-foreground/80 truncate max-w-[200px]">
           {provider.base_url || ""}
         </p>
       </div>
 
       {/* Row 4: Buttons */}
       <div className="flex gap-2 mt-auto pt-3">
-        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing} className="font-light uppercase">
+        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing} className="font-medium uppercase tracking-[0.1em] text-[10px]">
           {testing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plug className="h-3 w-3 mr-1" />}
           Test
         </Button>
-        <Button variant="outline" size="sm" onClick={handleSetDefault} disabled={provider.is_default} className="font-light uppercase">
+        <Button variant="outline" size="sm" onClick={handleSetDefault} disabled={provider.is_default} className="font-medium uppercase tracking-[0.1em] text-[10px]">
           <Star className="h-3 w-3 mr-1" />
           Default
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onEdit(provider)} className="font-light uppercase">
+        <Button variant="outline" size="sm" onClick={() => onEdit(provider)} className="font-medium uppercase tracking-[0.1em] text-[10px]">
           <Pencil className="h-3 w-3 mr-1" />
           Edit
         </Button>
@@ -140,7 +140,7 @@ export function ProviderCard({ provider, onEdit, onRefresh }: ProviderCardProps)
           size="sm"
           onClick={handleDelete}
           disabled={deleting}
-          className="font-light uppercase hover:text-orange-600 dark:hover:text-orange-400"
+          className="font-medium uppercase tracking-[0.1em] text-[10px] hover:text-orange-600 dark:hover:text-orange-400"
         >
           <Trash2 className="h-3 w-3 mr-1" />
           Delete

@@ -265,7 +265,7 @@ export function FileDetailDialog({ collection, source, displayName, chunks, chun
                 {goToLabel && (
                   <button
                     type="button"
-                    className="text-[9px] font-light uppercase tracking-[0.12em] text-primary hover:opacity-80 transition-opacity cursor-pointer"
+                    className="text-[10px] font-medium uppercase tracking-[0.1em] text-primary hover:opacity-80 transition-opacity cursor-pointer"
                     style={{ background: "none", border: "none", fontFamily: "var(--font-sans)" }}
                     onClick={handleGoToSource}
                   >

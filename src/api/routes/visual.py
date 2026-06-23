@@ -8,16 +8,12 @@ from pathlib import Path
 from fastapi import APIRouter, Body
 
 from src.config import get_config, DATA_DIR
+from src.prompts import VISUAL_PROMPT
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-VISUAL_SYSTEM_PROMPT = (
-    "Describe this image concisely in 2-4 sentences. Cover: what is shown, key elements, "
-    "and any visible text. Be brief and objective. Match the language of visible text, "
-    "or use English if none."
-)
 DESCRIPTION_PREFIX = "[Image Description]: "
 
 
@@ -96,7 +92,7 @@ def describe_image(body: dict = Body(...)):
         from src.providers.llm import create_llm_for_provider
 
         llm = create_llm_for_provider(target_provider, model=visual_model_id)
-        raw_description = llm.describe_image(image_base64, image_mime)
+        raw_description = llm.describe_image(image_base64, image_mime, prompt=VISUAL_PROMPT)
         description = f"{DESCRIPTION_PREFIX}{raw_description}"
         logger.info(
             "Visual describe: model=%s image=%s desc_len=%d",

@@ -18,7 +18,7 @@ export const MessageBubble = memo(function MessageBubble({ message, onSelectSour
     return (
       <div className="flex flex-col items-end mb-8">
         <div
-          className="text-[9px] font-semibold uppercase tracking-[0.2em] mb-1.5 text-primary"
+          className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 mb-1.5 text-primary"
         >
           You
         </div>
@@ -35,7 +35,7 @@ export const MessageBubble = memo(function MessageBubble({ message, onSelectSour
   return (
     <div className="mb-8 pl-5 border-l max-w-[72%] border-border">
       <div
-        className="text-[9px] font-semibold uppercase tracking-[0.25em] mb-2.5 text-muted-foreground"
+        className="text-[11px] font-normal uppercase tracking-[0.12em] mb-2.5 text-muted-foreground/80"
       >
         Assistant
       </div>

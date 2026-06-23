@@ -145,7 +145,7 @@ export function NotesCard({ collection }: NotesCardProps) {
         <span className="text-[12px] truncate">{note.title}</span>
         {note.is_extracted && (
           <span
-            className="text-[9px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 shrink-0 text-primary"
+            className="text-[10px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 shrink-0 text-primary"
             style={{ background: "rgba(26,94,61,0.08)", borderRadius: "2px" }}
           >
             extracted
@@ -153,7 +153,7 @@ export function NotesCard({ collection }: NotesCardProps) {
         )}
         {note.is_ingested && (
           <span
-            className="text-[9px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 shrink-0 text-primary"
+            className="text-[10px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 shrink-0 text-primary"
             style={{ background: "rgba(26,94,61,0.08)", borderRadius: "2px" }}
           >
             ingested
@@ -193,7 +193,7 @@ export function NotesCard({ collection }: NotesCardProps) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
+              className="text-[10px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
               style={{
                 background: "none", border: "0.5px solid var(--color-border)",
                 padding: "3px 8px", borderRadius: "2px",
@@ -205,7 +205,7 @@ export function NotesCard({ collection }: NotesCardProps) {
             <button
               type="button"
               onClick={handleCreate}
-              className="text-[9px] font-semibold uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-85"
+              className="text-[10px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-85"
               style={{
                 background: "var(--color-primary)", color: "white", border: "none",
                 padding: "4px 10px", borderRadius: "2px", fontFamily: "var(--font-sans)",

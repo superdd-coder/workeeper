@@ -98,33 +98,7 @@ def _do_embed(chunks, config, collection):
 
 # ── Consolidation ──────────────────────────────────────────
 
-CONSOLIDATION_PROMPT = """You are analyzing multiple document summaries from a single project. Synthesize them into:
-
-1. A CONCISE PROJECT SUMMARY (300 words max): Write a high-level overview of the project, NOT a per-document re-summary. Synthesize across all documents to answer:
-   - What is this project? (type, scope, scale)
-   - Who is involved? (client, vendor, key parties)
-   - Key technical parameters (capacity, process, specs)
-   - Key commercial terms (contract value, rate, duration)
-   - Timeline and status
-   Write in concise paragraphs without ## sub-headings. Use **bold** for key numbers and names.
-
-2. CONFLICTS: Identify ONLY genuine contradictions where two documents make different claims about the SAME fact.
-
-Document summaries:
-{summaries}
-
-===OUTPUT FORMAT===
-
-Output a single JSON object with this EXACT schema (no markdown, no extra text):
-
-{{
-  "summary": "(Concise project overview, max 300 words, plain paragraphs with **bold** highlights)",
-  "conflicts": [
-    {{"content1": "claim from doc 1", "source1": "filename1", "content2": "claim from doc 2", "source2": "filename2"}}
-  ]
-}}
-
-If no conflicts, use an empty array: "conflicts": []"""
+from src.prompts import CONSOLIDATION_PROMPT  # noqa: E402
 
 PROJECT_DESCRIPTION_PROMPT = """Based on the following document summaries from project "{project_name}", write a concise 2-sentence project description that captures what this project is about.
 

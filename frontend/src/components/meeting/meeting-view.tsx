@@ -471,7 +471,7 @@ export function MeetingView() {
   }
 
   return (
-    <div className="h-full flex [&_button]:font-light [&_button]:uppercase [&_button]:tracking-wider [&_button]:text-xs">
+    <div className="h-full flex [&_button]:font-[350] [&_button]:uppercase [&_button]:tracking-[0.08em]">
       <MeetingList
         meetings={meetings}
         activeMeeting={activeMeeting}

@@ -24,7 +24,7 @@ interface InfoPanelProps {
 /* Editorial section header */
 function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("text-[9px] font-semibold uppercase tracking-[0.2em] mb-2.5 text-muted-foreground", className)}>
+    <div className={cn("text-[11px] font-normal uppercase tracking-[0.12em] mb-2.5 text-muted-foreground/80", className)}>
       {children}
     </div>
   )
@@ -212,23 +212,23 @@ export function InfoPanel({ collection }: InfoPanelProps) {
       <div className="flex gap-10 pb-5 border-b border-dashed border-border">
         <div className="flex flex-col">
           <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{docCount}</span>
-          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Documents</span>
+          <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 mt-1.5">Documents</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{meetings.length > 0 || meetingsLoading ? meetings.length : "—"}</span>
-          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Recordings</span>
+          <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 mt-1.5">Recordings</span>
         </div>
         <div className="flex flex-col">
           <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>
             {notesCount > 0 ? `${ingestedNotesCount}/${notesCount}` : "—"}
           </span>
-          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">
+          <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 mt-1.5">
             Notes{ingestedNotesCount > 0 ? ` · ${ingestedNotesCount} ingested` : ""}
           </span>
         </div>
         <div className="flex flex-col">
           <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{conflicts.length}</span>
-          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Conflicts</span>
+          <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 mt-1.5">Conflicts</span>
         </div>
       </div>
 

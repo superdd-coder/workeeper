@@ -216,7 +216,7 @@ export const downloadModels = (hf_token?: string, model_ids?: string[]) =>
   })
 
 export const toggleModelLoad = (model_id: string) =>
-  request<{ success: boolean; model_id: string; loaded: boolean }>(
+  request<{ success: boolean; model_id: string; loaded: boolean; error?: string }>(
     `/models/${model_id}/toggle-load`,
     { method: "POST" }
   )

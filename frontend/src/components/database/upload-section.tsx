@@ -52,7 +52,7 @@ export function UploadSection({ hasActiveTasks, tasks, allowedFileTypes, onUploa
       {/* Upload zone */}
       <div>
         <div
-          className="text-[9px] font-semibold uppercase tracking-[0.2em] mb-2.5 text-muted-foreground"
+          className="text-[11px] font-normal uppercase tracking-[0.12em] mb-2.5 text-muted-foreground/80"
         >
           Upload Files
         </div>
@@ -84,7 +84,7 @@ export function UploadSection({ hasActiveTasks, tasks, allowedFileTypes, onUploa
         <div>
           <div className="flex items-center justify-between mb-2.5">
             <div
-              className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+              className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80"
             >
               Upload Queue
               {hasActiveTasks && (
@@ -97,7 +97,7 @@ export function UploadSection({ hasActiveTasks, tasks, allowedFileTypes, onUploa
               type="button"
               onClick={handleClearCompleted}
               disabled={!tasks.some((t) => t.status === "completed" || t.status === "failed")}
-              className="text-[9px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
+              className="text-[10px] font-medium uppercase tracking-[0.1em] cursor-pointer transition-opacity hover:opacity-80 text-muted-foreground"
               style={{
                 background: "none",
                 border: "0.5px solid var(--color-border)",

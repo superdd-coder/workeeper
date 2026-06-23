@@ -70,25 +70,25 @@ export function LocalModelCard({
     switch (loadState) {
       case "loading":
         return (
-          <Badge variant="outline" className="text-xs border-indigo-300 text-indigo-700 bg-indigo-50 dark:border-indigo-700 dark:text-indigo-300 dark:bg-indigo-900/30">
+          <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-[0.1em] border-indigo-300 text-indigo-700 bg-indigo-50 dark:border-indigo-700 dark:text-indigo-300 dark:bg-indigo-900/30">
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />Loading...
           </Badge>
         )
       case "loaded":
         return (
-          <Badge className="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400">
+          <Badge className="text-[10px] font-medium uppercase tracking-[0.1em] bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400">
             Loaded
           </Badge>
         )
       case "error":
         return (
-          <Badge variant="outline" className="text-xs border-red-300 text-red-700 bg-red-50 dark:border-red-700 dark:text-red-300 dark:bg-red-900/30">
+          <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-[0.1em] border-red-300 text-red-700 bg-red-50 dark:border-red-700 dark:text-red-300 dark:bg-red-900/30">
             Error
           </Badge>
         )
       default:
         return (
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-[0.1em]">
             Unloaded
           </Badge>
         )
@@ -100,12 +100,12 @@ export function LocalModelCard({
       {/* Row 1: Name + status + badges */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-light uppercase tracking-wider">{name}</span>
+          <span className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">{name}</span>
           <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isDefault && (
-            <Badge className="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"><Star className="h-3 w-3 mr-1" />Default</Badge>
+            <Badge className="text-[10px] font-medium uppercase tracking-[0.1em] bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"><Star className="h-3 w-3 mr-1" />Default</Badge>
           )}
           {loadBadge()}
         </div>
@@ -113,7 +113,7 @@ export function LocalModelCard({
 
       {/* Row 2: Model */}
       <div className="mt-1 min-h-[1.25rem]">
-        <p className="text-sm text-muted-foreground">{model}</p>
+        <p className="font-normal text-[12px] text-muted-foreground/80">{model}</p>
       </div>
 
       {/* Row 3: URL (reserved for uniform height) */}
@@ -121,11 +121,11 @@ export function LocalModelCard({
 
       {/* Row 4: Buttons */}
       <div className="flex gap-2 mt-auto pt-3">
-        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing || !isLoaded} className="font-light uppercase">
+        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing || !isLoaded} className="font-medium uppercase tracking-[0.1em] text-[10px]">
           {testing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plug className="h-3 w-3 mr-1" />}
           Test
         </Button>
-        <Button variant="outline" size="sm" onClick={onSetDefault} disabled={isDefault || !isLoaded || !isDownloaded} className="font-light uppercase">
+        <Button variant="outline" size="sm" onClick={onSetDefault} disabled={isDefault || !isLoaded || !isDownloaded} className="font-medium uppercase tracking-[0.1em] text-[10px]">
           <Star className="h-3 w-3 mr-1" />Default
         </Button>
         {isDownloaded ? (
@@ -134,13 +134,13 @@ export function LocalModelCard({
             size="sm"
             onClick={handleToggle}
             disabled={toggling || isLoading}
-            className="font-light uppercase"
+            className="font-medium uppercase tracking-[0.1em] text-[10px]"
           >
             {toggling || isLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Power className="h-3 w-3 mr-1" />}
             {isLoaded ? "Unload" : "Load"}
           </Button>
         ) : (
-          <Button variant="outline" size="sm" onClick={onDownload} className="font-light uppercase">
+          <Button variant="outline" size="sm" onClick={onDownload} className="font-medium uppercase tracking-[0.1em] text-[10px]">
             <Download className="h-3 w-3 mr-1" />Download first
           </Button>
         )}

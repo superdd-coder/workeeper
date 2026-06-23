@@ -73,6 +73,32 @@ async def transcribe_handler(task: Task, meeting_id: str, **kwargs) -> dict:
     if provider_cfg is None:
         provider_cfg = config.transcription.get_local_file_provider()
 
+    # Auto-load the provider if its model is downloaded but not yet loaded.
+    # If the model is NOT downloaded, raise a clear error — do NOT auto-download.
+    if provider_cfg and provider_cfg.adapter.startswith("funasr_local"):
+        from src.services import _is_builtin_model_downloaded, reload_provider
+        from src.providers.load_state import get_state
+        model_id = provider_cfg.id
+        if not _is_builtin_model_downloaded(model_id):
+            raise RuntimeError(
+                "Local transcription model is not downloaded. "
+                "Please download it first via Settings → Local Models → Download."
+            )
+        if get_state(model_id) not in ("loaded", "loading"):
+            logger.info("[TRANSCRIBE-HANDLER] Auto-loading transcription provider: %s", model_id)
+            reload_provider(model_id, loading=True)
+            # Wait briefly for load to complete
+            import time
+            waited = 0
+            while get_state(model_id) == "loading" and waited < 60:
+                time.sleep(0.5)
+                waited += 0.5
+            if get_state(model_id) == "error":
+                raise RuntimeError(
+                    "Failed to load local transcription model. "
+                    "Check the model files and try again via Settings → Local Models → Load."
+                )
+
     provider = cached_provider(
         f"file_trans:{provider_cfg.id}",
         lambda: create_file_transcription_provider(provider_cfg),
@@ -148,57 +174,7 @@ task_manager.register_handler("meeting_summary", meeting_summary_handler)
 # MeetingService
 # ---------------------------------------------------------------------------
 
-_SUMMARY_SYSTEM = "You are a professional meeting assistant. You extract structured information from meeting transcripts and notes."
-
-_SUMMARY_PROMPT = """\
-Based on the following meeting transcript and notes, generate a structured summary.
-
----TRANSCRIPT---
-{transcript}
-
----SPEAKERS---
-{speakers}
-
----NOTES---
-{notes}
-
----HOT WORDS (Domain Terminology)---
-{hot_words}
-
-These hot words are domain-specific terms (names, acronyms, jargon) for YOUR REFERENCE ONLY. Use them ONLY to correct potential ASR errors — if you see garbled or out-of-place words that phonetically resemble a hot word, replace them with the correct spelling. Do NOT list, mention, or regurgitate hot words anywhere in the output. They are a correction aid, not content.
-
-Requirements:
-- **Title**: A short, descriptive meeting title (max 50 characters). Format: "[Main Topic] - [Key Context]". Do NOT include a date prefix.
-- **Sections**: Split the meeting into logical sections by project/topic. Each section has:
-  • heading: The project/topic name (e.g. "Project WD", "Other Topics")
-  • detail: Comprehensive account of everything discussed under this topic. Include key points, data, arguments, decisions, context from notes. Use Markdown with bullet points, bold, and real speaker names.
-  • summary: Concise 2-4 sentence summary of this topic's discussion and outcomes. Use Markdown.
-  • todos: JSON array of action items for this topic. Each item has "text" (required), optional "assignee" (real speaker name), optional "priority" (high/medium/low). CRITICAL: Every section MUST have a todos array, even if empty ([]).
-
-{database_grouping_instruction}
-
-IMPORTANT: Always incorporate information from the NOTES section. Notes may contain important context, decisions, or details not present in the transcript.
-
-Output a single JSON object with this EXACT schema (no markdown fences, no extra text):
-
-{{
-  "title": "Meeting Title",
-  "sections": [
-    {{
-      "heading": "Project/Topic Name",
-      "detail": "Markdown detail text...",
-      "summary": "Markdown summary text...",
-      "todos": [{{"text": "action item", "assignee": "Name", "priority": "high"}}]
-    }}
-  ]
-}}
-
-RULES for sections:
-- Each section represents a distinct project or major topic group
-- Sub-points and numbered items stay as bullets within their section's detail
-- If the meeting covers a single topic, use one section
-- Always include at least one section
-- NEVER mention hot words, project matching results, or reference-only metadata in the output. Hot words are a correction aid; project names are section grouping hints. Neither should appear as content."""
+from src.prompts import MEETING_SUMMARY_SYSTEM, MEETING_SUMMARY_PROMPT
 
 
 class MeetingService:
@@ -320,7 +296,7 @@ class MeetingService:
                 except Exception:
                     logger.warning("[SUMMARY] Failed to load hot words", exc_info=True)
 
-            prompt = _SUMMARY_PROMPT.format(
+            prompt = MEETING_SUMMARY_PROMPT.format(
                 transcript=transcript_text, notes=notes_text, speakers=speakers_text,
                 database_grouping_instruction=db_grouping_instruction,
                 hot_words=hot_words_text,
@@ -340,7 +316,7 @@ class MeetingService:
 
             raw_response = llm.generate(
                 prompt,
-                system=_SUMMARY_SYSTEM,
+                system=MEETING_SUMMARY_SYSTEM,
                 max_tokens=32768,
             )
             logger.info("[SUMMARY] LLM returned %d chars", len(raw_response))

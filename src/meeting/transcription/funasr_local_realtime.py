@@ -52,6 +52,7 @@ class FunASRLocalRealtimeTranscription(RealtimeTranscriptionProvider):
     def __init__(self, config: TranscriptionProviderConfig):
         from funasr import AutoModel  # lazy, optional dependency
         from src.providers.load_state import detect_device
+        from src.meeting.transcription.funasr_local import _ensure_models_downloaded
 
         self._model_name = config.model or _DEFAULT_MODEL
         self._device = (config.device if config.device and config.device != "auto" else detect_device())
@@ -63,6 +64,9 @@ class FunASRLocalRealtimeTranscription(RealtimeTranscriptionProvider):
             except Exception:
                 logger.warning("Device '%s' not available, falling back to CPU", self._device)
                 self._device = "cpu"
+
+        # Verify model is downloaded — prevent FunASR auto-download
+        _ensure_models_downloaded([(self._model_name, "realtime transcription")])
 
         model_kwargs: dict[str, Any] = {"model": self._model_name, "device": self._device, "hub": _HUB}
 

@@ -729,7 +729,7 @@ function EvaluateTab() {
       {/* Test Cases */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Test Cases ({cases.length})</span>
+          <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80">Test Cases ({cases.length})</span>
           <div className="flex gap-2">
             {cases.length === 0 ? (
               <button
@@ -845,7 +845,7 @@ function EvaluateTab() {
         return (
         <div>
           <div className="mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Evaluation History</span>
+            <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80">Evaluation History</span>
           </div>
           {/* Always-visible selected row */}
           <div
@@ -933,31 +933,31 @@ function EvaluateTab() {
               metricsVisible ? "opacity-100" : "opacity-0"
             }`} style={{ transitionDelay: metricsVisible ? "0ms" : "0ms" }}>
               <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{((report.avg_recall ?? 0) * 100).toFixed(1)}%</span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Recall</span>
+              <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 text-muted-foreground mt-1.5">Recall</span>
             </div>
             <div className={`flex flex-col items-center transition-opacity duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
               metricsVisible ? "opacity-100" : "opacity-0"
             }`} style={{ transitionDelay: metricsVisible ? "300ms" : "0ms" }}>
               <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{((report.avg_hard_recall ?? 0) * 100).toFixed(1)}%</span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Hard Recall</span>
+              <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 text-muted-foreground mt-1.5">Hard Recall</span>
             </div>
             <div className={`flex flex-col items-center transition-opacity duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
               metricsVisible ? "opacity-100" : "opacity-0"
             }`} style={{ transitionDelay: metricsVisible ? "600ms" : "0ms" }}>
               <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{formatSigned(report.avg_quality_score ?? 0)}</span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">Quality</span>
+              <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 text-muted-foreground mt-1.5">Quality</span>
             </div>
             <div className={`flex flex-col items-center transition-opacity duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
               metricsVisible ? "opacity-100" : "opacity-0"
             }`} style={{ transitionDelay: metricsVisible ? "900ms" : "0ms" }}>
               <span className="text-[28px] font-light leading-none text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{(report.avg_mrr ?? 0).toFixed(3)}</span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1.5">MRR</span>
+              <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80 text-muted-foreground mt-1.5">MRR</span>
             </div>
           </div>
 
           <div>
             <div className="mb-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Per-Query Results</span>
+              <span className="text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80">Per-Query Results</span>
             </div>
             <div className="space-y-1">
               {report.per_query.map((r) => (
@@ -1110,7 +1110,7 @@ export function RecallView() {
     <div className="h-full overflow-auto p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="mb-5">
-          <span className="text-[14px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+          <span className="text-[18px] font-[350] tracking-tight uppercase">
             Recall
           </span>
           <p className="text-[10px] text-muted-foreground mt-0.5">

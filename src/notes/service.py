@@ -41,20 +41,7 @@ def expand_distill_blocks(collection: str, content: str, depth: int = 0, max_dep
     return pattern.sub(replace_block, content)
 
 
-# ── Distillation prompt ──────────────────────────────────────
-
-DISTILL_SYSTEM_PROMPT = """Extract key information only. Be extremely concise.
-
-Rules:
-- Output ONLY facts from source - no additions
-- Use `-` for each point, one line per point
-- `**bold**` for key terms/names/numbers only
-- NO preamble, NO commentary, NO headings
-- Target: 20-40% of original length
-- If empty source: *No content*"""
-
-DISTILL_USER_PROMPT = """Extract:
-{source_content}"""
+from src.prompts import DISTILL_SYSTEM_PROMPT, DISTILL_USER_PROMPT
 
 
 def get_distillation_prompt(source_content: str) -> tuple[str, str]:

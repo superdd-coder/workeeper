@@ -19,6 +19,52 @@ _DEFAULT_SPK_MODEL = "funasr/campplus"
 _HUB = "hf"
 
 
+def _is_hf_model_cached(repo_id: str) -> bool:
+    """Check whether a HuggingFace model is present in the local cache."""
+    import os
+    from pathlib import Path
+
+    hf_home = Path(os.environ.get("HF_HOME", "data/models"))
+    safe_name = repo_id.replace("/", "--")
+    cache_dir = hf_home / "hub" / f"models--{safe_name}" / "snapshots"
+    if not cache_dir.exists():
+        return False
+    # Look for weight files in any snapshot
+    weight_exts = {".safetensors", ".bin", ".pt", ".onnx"}
+    for snap in cache_dir.iterdir():
+        if not snap.is_dir():
+            continue
+        for f in snap.iterdir():
+            if f.is_file() and f.suffix in weight_exts and f.stat().st_size > 500_000:
+                return True
+    return False
+
+
+def _ensure_models_downloaded(models: list[tuple[str, str]]) -> None:
+    """Raise a clear error if any required HF model is missing from disk.
+
+    Args:
+        models: List of (repo_id, display_label) tuples to check.
+
+    Raises:
+        RuntimeError: If any model is not cached locally, with a message
+                      telling the user to download it first.
+    """
+    missing: list[str] = []
+    for repo_id, label in models:
+        if not _is_hf_model_cached(repo_id):
+            missing.append(f"  - {label}: {repo_id}")
+    if missing:
+        msg = (
+            "Cannot load local transcription model: the following models "
+            "are not downloaded:\n"
+            + "\n".join(missing)
+            + "\n\nPlease download them first via Settings → Local Models → Download."
+        )
+        logger.error(msg)
+        raise RuntimeError(msg)
+
+
 @file_transcription_registry.register(
     "funasr_local",
     display_name="SenseVoice Small (local, 5 langs, fast)",
@@ -59,6 +105,20 @@ class FunASRLocalFileTranscription(FileTranscriptionProvider):
             except Exception:
                 logger.warning("Device '%s' not available, falling back to CPU", self._device)
                 self._device = "cpu"
+
+        # Verify all required models are downloaded before attempting load.
+        # FunASR AutoModel with hub="hf" will auto-download if files are
+        # missing — we explicitly prevent that behaviour here.
+        required_models: list[tuple[str, str]] = [
+            (self._model_name, "transcription"),
+        ]
+        if self._vad_model:
+            required_models.append((self._vad_model, "VAD"))
+        if self._spk_model:
+            required_models.append((self._spk_model, "speaker"))
+        if punc_name:
+            required_models.append((punc_name, "punctuation"))
+        _ensure_models_downloaded(required_models)
 
         model_kwargs: dict[str, Any] = {
             "model": self._model_name,

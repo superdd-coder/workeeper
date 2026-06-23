@@ -29,10 +29,15 @@ class LLMProvider(ABC):
     @abstractmethod
     def generate_stream(self, prompt: str, system: str = "", temperature: float | None = None, max_tokens: int | None = None): ...
 
-    def describe_image(self, image_base64: str, image_mime: str = "image/png") -> str:
+    def describe_image(self, image_base64: str, image_mime: str = "image/png", prompt: str = "") -> str:
         """Generate a text description of an image using Vision API.
 
         Default implementation raises NotImplementedError. Override in providers
         that support vision/image input (e.g., GPT-4o, Claude).
+
+        Args:
+            image_base64: Base64-encoded image data
+            image_mime: MIME type of the image
+            prompt: Custom prompt to send with the image (provider may use a default if empty)
         """
         raise NotImplementedError("This LLM provider does not support image description")

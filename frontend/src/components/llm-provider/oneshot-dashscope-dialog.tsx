@@ -10,6 +10,7 @@ import {
   getFileTranscriptionProviders, updateFileTranscriptionProvider, createFileTranscriptionProvider,
   getRealtimeTranscriptionProviders, updateRealtimeTranscriptionProvider, createRealtimeTranscriptionProvider,
   createLLMProvider,
+  updateConfig,
 } from "@/api/client"
 import { toast } from "sonner"
 
@@ -24,6 +25,7 @@ const DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 export function OneShotDashscopeDialog({ open, onOpenChange, onSaved }: OneShotDashscopeDialogProps) {
   const [apiKey, setApiKey] = useState("")
   const [llmModel, setLlmModel] = useState("deepseek-v4-flash")
+  const [visualModel, setVisualModel] = useState("qwen3.5-flash")
   const [embModel, setEmbModel] = useState("text-embedding-v4")
   const [rerankerModel, setRerankerModel] = useState("qwen3-rerank")
   const [fileTransModel, setFileTransModel] = useState("fun-asr")
@@ -55,6 +57,10 @@ export function OneShotDashscopeDialog({ open, onOpenChange, onSaved }: OneShotD
         ...rtTransList.filter((p) => p.is_active).map((p) => updateRealtimeTranscriptionProvider(p.id, { ...p, is_active: false })),
       ])
 
+      // Build selected_models: both text and visual models (deduplicate if same)
+      const selectedModels = [...new Set([llmModel.trim(), visualModel.trim()].filter(Boolean))]
+      const visualModelIds = visualModel.trim() ? [visualModel.trim()] : []
+
       // Create new providers with default/active set
       await Promise.all([
         createLLMProvider({
@@ -66,8 +72,9 @@ export function OneShotDashscopeDialog({ open, onOpenChange, onSaved }: OneShotD
           max_tokens: 4096,
           max_concurrent_requests: 10,
           is_default: true,
-          selected_models: llmModel.trim() ? [llmModel.trim()] : [],
+          selected_models: selectedModels,
           default_model: llmModel.trim(),
+          visual_model_ids: visualModelIds,
         }),
         createEmbeddingProvider({
           name: "Dashscope",
@@ -101,6 +108,10 @@ export function OneShotDashscopeDialog({ open, onOpenChange, onSaved }: OneShotD
           is_active: true,
         }),
       ])
+      // Set the global visual model to the configured visual model
+      if (visualModel.trim()) {
+        await updateConfig("visual_model_id", { visual_model_id: visualModel.trim() })
+      }
       toast.success("All Dashscope providers created")
       onSaved()
       onOpenChange(false)
@@ -154,6 +165,19 @@ export function OneShotDashscopeDialog({ open, onOpenChange, onSaved }: OneShotD
             />
             <p className="text-xs text-muted-foreground">
               Base URL: {DASHSCOPE_BASE_URL}
+            </p>
+          </div>
+
+          {/* Visual Model */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Visual Model</label>
+            <Input
+              value={visualModel}
+              onChange={(e) => setVisualModel(e.target.value)}
+              placeholder="qwen3.5-flash"
+            />
+            <p className="text-xs text-muted-foreground">
+              Vision-capable model for image description. Will be checked as Visual in LLM settings.
             </p>
           </div>
 

@@ -71,19 +71,33 @@ def _provider_cache_snapshot() -> list[str]:
 
 
 def _is_builtin_model_downloaded(config_section) -> bool:
-    """Check if the built-in model's files exist on disk before attempting load."""
+    """Check if the built-in model's files exist on disk before attempting load.
+
+    For file transcription, checks ALL sub-models (transcription, vad,
+    speaker, punc) — any missing means the provider cannot be loaded.
+    """
     from src.models.download import _is_downloaded, LOCAL_MODELS
-    config_to_download_id = {
-        "builtin-local-file": "transcription",
-        "builtin-local-rt": "realtime",
+
+    config_to_download_ids: dict[str, list[str]] = {
+        "builtin-local-file": ["transcription", "vad", "speaker", "punc"],
+        "builtin-local-rt": ["realtime"],
     }
-    download_id = config_to_download_id.get(config_section)
-    if not download_id:
+    download_ids = config_to_download_ids.get(config_section)
+    if not download_ids:
         return True
-    model = next((m for m in LOCAL_MODELS if m.id == download_id), None)
-    if not model:
-        return True
-    return _is_downloaded(model)
+
+    for download_id in download_ids:
+        model = next((m for m in LOCAL_MODELS if m.id == download_id), None)
+        if not model:
+            continue
+        if not _is_downloaded(model):
+            missing_display = model.display_name
+            logger.warning(
+                "Built-in model not downloaded: %s (%s)",
+                download_id, missing_display,
+            )
+            return False
+    return True
 
 
 def reload_provider(model_id: str, *, loading: bool):

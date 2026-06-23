@@ -25,18 +25,18 @@ export function Sidebar() {
       className="w-[172px] border-r border-border flex flex-col shrink-0 py-6 px-4 bg-background"
     >
       <nav className="flex flex-col flex-1">
-        <div className="text-[14px] font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-3">
+        <div className="text-[14px] font-[300] uppercase tracking-[0.25em] text-muted-foreground mb-4">
           Navigate
         </div>
 
         {navItems.map(({ view, label }) => (
-          <div key={view}>
+          <div key={view} className="mb-0.5">
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start gap-2.5 py-1.5 px-0 h-auto text-xs uppercase tracking-wider relative rounded-none",
+                "w-full justify-start gap-2.5 py-2 px-0 h-auto text-xs uppercase tracking-wider relative rounded-none",
                 "hover:bg-transparent hover:text-primary",
-                sidebarView === view ? "font-medium text-primary" : "font-normal text-muted-foreground",
+                sidebarView === view ? "font-[400] text-primary" : "font-[300] text-muted-foreground",
               )}
               onClick={() => setSidebarView(view)}
             >
@@ -55,7 +55,7 @@ export function Sidebar() {
         ))}
 
         <div className="mt-auto pt-5 border-t border-dashed border-border">
-          <div className="text-[9px] tracking-[0.1em] text-muted-foreground">
+          <div className="text-[10px] font-[300] tracking-[0.1em] text-muted-foreground/60">
             SinkDuce v0.1 · RAG
           </div>
         </div>

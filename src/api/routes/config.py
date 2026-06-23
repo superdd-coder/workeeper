@@ -1069,12 +1069,24 @@ async def toggle_model_load(model_id: str):
     import logging
     _log = logging.getLogger("api.models")
     from src.providers.load_state import set_state
-    from src.services import reload_provider
+    from src.services import reload_provider, _is_builtin_model_downloaded
 
     # Check current load state
     from src.providers.load_state import get_state
     current = get_state(model_id)
     if current in ("unloaded", "error"):
+        # Verify model files exist before attempting load
+        if not _is_builtin_model_downloaded(model_id):
+            _log.warning("Load denied: %s — model not downloaded", model_id)
+            return {
+                "success": False,
+                "model_id": model_id,
+                "loaded": False,
+                "error": (
+                    "Model files are not fully downloaded. "
+                    "Please download them first via Settings → Local Models → Download."
+                ),
+            }
         loading = True
         _log.info("Load requested: %s", model_id)
     else:

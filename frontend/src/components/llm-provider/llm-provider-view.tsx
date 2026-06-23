@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -89,39 +89,39 @@ function SimpleProviderCard<T extends { id: string; name: string; provider: stri
       {/* Row 1: Provider name + status + default badge */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-light uppercase tracking-wider">{provider.name || "Unnamed"}</span>
+          <span className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">{provider.name || "Unnamed"}</span>
           <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
         </div>
         {provider.is_default && (
-          <Badge className="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 shrink-0"><Star className="h-3 w-3 mr-1" />Default</Badge>
+          <Badge className="text-[10px] font-medium uppercase tracking-[0.1em] bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 shrink-0"><Star className="h-3 w-3 mr-1" />DEFAULT</Badge>
         )}
       </div>
 
       {/* Row 2: Model */}
       <div className="mt-1 min-h-[1.25rem]">
-        <p className="text-sm text-muted-foreground">{provider.model || ""}</p>
-        {subtitle && <p className="text-[10px] text-muted-foreground/70">{subtitle}</p>}
+        <p className="font-normal text-[12px] text-muted-foreground/80">{provider.model || ""}</p>
+        {subtitle && <p className="font-normal text-[11px] text-muted-foreground/80">{subtitle}</p>}
       </div>
 
       {/* Row 3: URL */}
       <div className="min-h-[1rem]">
-        <p className="text-xs text-muted-foreground truncate max-w-[200px]">{provider.base_url || ""}</p>
+        <p className="font-normal text-[11px] text-muted-foreground/80 truncate max-w-[200px]">{provider.base_url || ""}</p>
       </div>
 
       {/* Row 4: Buttons */}
       <div className="flex gap-2 mt-auto pt-3">
-        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing} className="font-light uppercase">
+        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing} className="font-medium uppercase tracking-[0.1em] text-[10px]">
           {testing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Plug className="h-3 w-3 mr-1" />}
-          Test
+          TEST
         </Button>
-        <Button variant="outline" size="sm" onClick={handleSetDefault} disabled={provider.is_default} className="font-light uppercase">
-          <Star className="h-3 w-3 mr-1" />Default
+        <Button variant="outline" size="sm" onClick={handleSetDefault} disabled={provider.is_default} className="font-medium uppercase tracking-[0.1em] text-[10px]">
+          <Star className="h-3 w-3 mr-1" />DEFAULT
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onEdit(provider)} className="font-light uppercase">
-          <Pencil className="h-3 w-3 mr-1" />Edit
+        <Button variant="outline" size="sm" onClick={() => onEdit(provider)} className="font-medium uppercase tracking-[0.1em] text-[10px]">
+          <Pencil className="h-3 w-3 mr-1" />EDIT
         </Button>
-        <Button variant="outline" size="sm" onClick={handleDelete} className="font-light uppercase hover:text-orange-600 dark:hover:text-orange-400">
-          <Trash2 className="h-3 w-3 mr-1" />Delete
+        <Button variant="outline" size="sm" onClick={handleDelete} className="font-medium uppercase tracking-[0.1em] text-[10px] hover:text-orange-600 dark:hover:text-orange-400">
+          <Trash2 className="h-3 w-3 mr-1" />DELETE
         </Button>
       </div>
     </div>
@@ -381,17 +381,17 @@ function TranscriptionProviderCard({ provider, kind, onEdit, onRefresh, onDelete
       {/* Row 1: Provider name + status + default badge */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-light uppercase tracking-wider">{provider.name || "Unnamed"}</span>
+          <span className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">{provider.name || "Unnamed"}</span>
           <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
         </div>
         {provider.is_active && (
-          <Badge className="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 shrink-0"><Star className="h-3 w-3 mr-1" />Default</Badge>
+          <Badge className="text-[10px] font-medium uppercase tracking-[0.1em] bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 shrink-0"><Star className="h-3 w-3 mr-1" />DEFAULT</Badge>
         )}
       </div>
 
       {/* Row 2: Model */}
       <div className="mt-1 min-h-[1.25rem]">
-        <p className="text-sm text-muted-foreground">{modelLabel}</p>
+        <p className="font-normal text-[12px] text-muted-foreground/80">{modelLabel}</p>
       </div>
 
       {/* Row 3: URL (reserved for uniform height) */}
@@ -399,18 +399,18 @@ function TranscriptionProviderCard({ provider, kind, onEdit, onRefresh, onDelete
 
       {/* Row 4: Buttons */}
       <div className="flex gap-2 mt-auto pt-3">
-        <Button variant="outline" size="sm" onClick={handleSetActive} disabled={provider.is_active} className="font-light uppercase">
-          <Star className="h-3 w-3 mr-1" />Default
+        <Button variant="outline" size="sm" onClick={handleSetActive} disabled={provider.is_active} className="font-medium uppercase tracking-[0.1em] text-[10px]">
+          <Star className="h-3 w-3 mr-1" />DEFAULT
         </Button>
-        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing} className="font-light uppercase">
+        <Button variant="outline" size="sm" onClick={handleTest} disabled={testing} className="font-medium uppercase tracking-[0.1em] text-[10px]">
           {testing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Zap className="h-3 w-3 mr-1" />}
-          Test
+          TEST
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onEdit(provider)} className="font-light uppercase">
-          <Pencil className="h-3 w-3 mr-1" />Edit
+        <Button variant="outline" size="sm" onClick={() => onEdit(provider)} className="font-medium uppercase tracking-[0.1em] text-[10px]">
+          <Pencil className="h-3 w-3 mr-1" />EDIT
         </Button>
-        <Button variant="outline" size="sm" onClick={handleDelete} className="font-light uppercase hover:text-orange-600 dark:hover:text-orange-400">
-          <Trash2 className="h-3 w-3 mr-1" />Delete
+        <Button variant="outline" size="sm" onClick={handleDelete} className="font-medium uppercase tracking-[0.1em] text-[10px] hover:text-orange-600 dark:hover:text-orange-400">
+          <Trash2 className="h-3 w-3 mr-1" />DELETE
         </Button>
       </div>
     </div>
@@ -459,6 +459,35 @@ export function LLMProviderView() {
 
   // Visual Model selection
   const [visualModelId, setVisualModelId] = useState<string>("")
+  const [showVisualModelDropdown, setShowVisualModelDropdown] = useState(false)
+  const visualModelBtnRef = useRef<HTMLButtonElement>(null)
+  const visualModelMenuRef = useRef<HTMLDivElement>(null)
+  const [visualModelPos, setVisualModelPos] = useState({ top: 0, left: 0, width: 0 })
+
+  // MinerU cloud parsing options
+  const MINERU_MODEL_OPTIONS = [
+    { value: "pipeline", label: "Pipeline (Default)" },
+    { value: "vlm", label: "VLM (Recommended)" },
+    { value: "MinerU-HTML", label: "MinerU HTML" },
+  ]
+  const MINERU_LANGUAGE_OPTIONS = [
+    { value: "ch", label: "Chinese + English + Traditional Chinese" },
+    { value: "ch_server", label: "Chinese + Japanese (server)" },
+    { value: "en", label: "English" },
+    { value: "japan", label: "Japanese" },
+    { value: "korean", label: "Korean" },
+    { value: "chinese_cht", label: "Traditional Chinese" },
+    { value: "ta", label: "Tamil" },
+    { value: "te", label: "Telugu" },
+    { value: "ka", label: "Kannada" },
+    { value: "el", label: "Greek" },
+    { value: "th", label: "Thai" },
+    { value: "latin", label: "Latin (40+ languages)" },
+    { value: "arabic", label: "Arabic" },
+    { value: "cyrillic", label: "Cyrillic (30+ languages)" },
+    { value: "east_slavic", label: "East Slavic (RU/UA/BY)" },
+    { value: "devanagari", label: "Devanagari (Hindi/Marathi/Nepali)" },
+  ]
 
   // MinerU cloud parsing settings
   const [mineruEnabled, setMineruEnabled] = useState(false)
@@ -469,6 +498,73 @@ export function LLMProviderView() {
   const [mineruTable, setMineruTable] = useState(true)
   const [mineruLanguage, setMineruLanguage] = useState("ch")
   const [showMineruToken, setShowMineruToken] = useState(false)
+
+  // MinerU custom dropdown state
+  const [showMineruModelDropdown, setShowMineruModelDropdown] = useState(false)
+  const [showMineruLanguageDropdown, setShowMineruLanguageDropdown] = useState(false)
+  const mineruModelBtnRef = useRef<HTMLButtonElement>(null)
+  const mineruModelMenuRef = useRef<HTMLDivElement>(null)
+  const mineruLangBtnRef = useRef<HTMLButtonElement>(null)
+  const mineruLangMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    if (!showVisualModelDropdown && !showMineruModelDropdown && !showMineruLanguageDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (showVisualModelDropdown &&
+          !visualModelBtnRef.current?.contains(e.target as Node) &&
+          !visualModelMenuRef.current?.contains(e.target as Node)) {
+        setShowVisualModelDropdown(false)
+      }
+      if (showMineruModelDropdown &&
+          !mineruModelBtnRef.current?.contains(e.target as Node) &&
+          !mineruModelMenuRef.current?.contains(e.target as Node)) {
+        setShowMineruModelDropdown(false)
+      }
+      if (showMineruLanguageDropdown &&
+          !mineruLangBtnRef.current?.contains(e.target as Node) &&
+          !mineruLangMenuRef.current?.contains(e.target as Node)) {
+        setShowMineruLanguageDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [showVisualModelDropdown, showMineruModelDropdown, showMineruLanguageDropdown])
+
+  // Dropdown position state — computed after DOM layout to avoid flying-in on first click
+  const [mineruModelPos, setMineruModelPos] = useState({ top: 0, left: 0, width: 0 })
+  const [mineruLangPos, setMineruLangPos] = useState({ top: 0, left: 0, width: 0 })
+
+  const updateMineruPositions = useCallback(() => {
+    if (mineruModelMenuRef.current && mineruModelBtnRef.current) {
+      const r = mineruModelMenuRef.current.getBoundingClientRect()
+      setMineruModelPos({ top: r.bottom + 4, left: r.left, width: mineruModelBtnRef.current.getBoundingClientRect().width })
+    }
+    if (mineruLangMenuRef.current && mineruLangBtnRef.current) {
+      const r = mineruLangMenuRef.current.getBoundingClientRect()
+      setMineruLangPos({ top: r.bottom + 4, left: r.left, width: mineruLangBtnRef.current.getBoundingClientRect().width })
+    }
+  }, [])
+
+  // Position is computed synchronously in onClick handlers (before state update)
+  // to avoid rendering at a stale position. Scroll/resize updates use the callback.
+
+  useEffect(() => {
+    if (!showVisualModelDropdown && !showMineruModelDropdown && !showMineruLanguageDropdown) return
+    const updateAll = () => {
+      updateMineruPositions()
+      if (visualModelMenuRef.current && visualModelBtnRef.current) {
+        const r = visualModelMenuRef.current.getBoundingClientRect()
+        setVisualModelPos({ top: r.bottom + 4, left: r.left, width: visualModelBtnRef.current.getBoundingClientRect().width })
+      }
+    }
+    window.addEventListener("scroll", updateAll, true)
+    window.addEventListener("resize", updateAll)
+    return () => {
+      window.removeEventListener("scroll", updateAll, true)
+      window.removeEventListener("resize", updateAll)
+    }
+  }, [showVisualModelDropdown, showMineruModelDropdown, showMineruLanguageDropdown, updateMineruPositions])
   const [savingMineru, setSavingMineru] = useState(false)
 
   // Runtime load states from backend
@@ -699,8 +795,8 @@ export function LLMProviderView() {
         {/* ── OneShot Dashscope ── */}
         <div className="flex items-center justify-between pb-6 mb-2 border-b border-dashed border-border">
           <div>
-            <p className="text-lg font-light tracking-tight uppercase">Quick Setup</p>
-            <p className="text-xs text-muted-foreground">Configure all providers with a single Dashscope API Key</p>
+            <p className="text-[18px] font-[350] tracking-tight uppercase">QUICK SETUP</p>
+            <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed">Configure all providers with a single Dashscope API Key</p>
           </div>
           <Button variant="outline" onClick={() => setOneshotDialogOpen(true)} className="font-light uppercase">
             <Zap className="h-4 w-4 mr-2" />OneShot Dashscope
@@ -711,7 +807,7 @@ export function LLMProviderView() {
         <section className="border-b border-border pb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-light tracking-tight uppercase">LLM Settings</h2>
+              <h2 className="text-[18px] font-[350] tracking-tight uppercase">LLM SETTINGS</h2>
             </div>
             <div className="flex gap-2">
               <Button variant="default" onClick={handleAdd} className="font-light uppercase">ADD</Button>
@@ -728,8 +824,8 @@ export function LLMProviderView() {
         <section className="border-b border-border pb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-light tracking-tight uppercase">Visual Model</h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <h2 className="text-[18px] font-[350] tracking-tight uppercase">VISUAL MODEL</h2>
+              <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed mt-1">
                 Select a vision-capable model for image description (Visual Translate). Enable Visual support in LLM settings per model.
               </p>
             </div>
@@ -746,7 +842,7 @@ export function LLMProviderView() {
               return (
                 <div className="border border-dashed border-muted-foreground/30 rounded-lg p-6 text-center">
                   <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed">
                     No visual-capable models configured. Enable Visual support for models in the LLM settings above.
                   </p>
                 </div>
@@ -754,27 +850,62 @@ export function LLMProviderView() {
             }
             return (
               <div className="flex items-center gap-3">
-                <span className="text-sm font-light uppercase tracking-wider whitespace-nowrap">Model</span>
-                <div className="flex-1 max-w-md">
-                  <DropdownSelect
-                    value={visualModelId}
-                    onChange={async (v) => {
-                      setVisualModelId(v)
-                      try {
-                        await updateConfig("visual_model_id", { visual_model_id: v || null })
-                        toast.success("Visual model updated")
-                      } catch {
-                        toast.error("Failed to update visual model")
-                      }
+                <span className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground whitespace-nowrap">MODEL</span>
+                <div className="flex-1 max-w-md relative" ref={visualModelMenuRef}>
+                  <button
+                    type="button"
+                    ref={visualModelBtnRef}
+                    onClick={() => {
+                      const r = visualModelMenuRef.current?.getBoundingClientRect()
+                      if (r) setVisualModelPos({ top: r.bottom + 4, left: r.left, width: visualModelBtnRef.current?.getBoundingClientRect().width || r.width })
+                      setShowVisualModelDropdown(!showVisualModelDropdown)
                     }}
-                    options={[
-                      { value: "", label: "None (disabled)" },
-                      ...visualModels.map((vm) => ({
-                        value: vm.model,
-                        label: `${vm.providerName} / ${vm.model}`,
-                      })),
-                    ]}
-                  />
+                    className="group relative flex items-center justify-center overflow-hidden rounded px-3 py-2 font-sans transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] w-full"
+                    style={{ fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: showVisualModelDropdown ? "var(--color-primary-foreground)" : visualModelId ? "var(--color-primary)" : "var(--color-muted-foreground)" }}
+                  >
+                    <span className="relative z-10 whitespace-nowrap">
+                      {visualModelId ? visualModels.find(vm => vm.model === visualModelId)?.model || visualModelId : "NONE (DISABLED)"}
+                    </span>
+                    <span
+                      className="absolute inset-0 z-0 transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] bg-primary"
+                      style={{ transform: showVisualModelDropdown ? "scaleX(1)" : "scaleX(0)", transformOrigin: showVisualModelDropdown ? "right" : "left" }}
+                    />
+                  </button>
+                  <div
+                    className={`fixed z-[100] mt-1 flex-col overflow-hidden rounded border border-primary/40 bg-popover shadow-md transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] max-h-64 overflow-y-auto ${
+                      showVisualModelDropdown ? "opacity-100 visible translate-y-0 pointer-events-auto" : "opacity-0 invisible -translate-y-3 pointer-events-none"
+                    }`}
+                    style={{ width: visualModelPos.width, top: visualModelPos.top, left: visualModelPos.left }}
+                  >
+                    {[{ value: "", label: "NONE (DISABLED)" }, ...visualModels.map(vm => ({ value: vm.model, label: `${vm.providerName} / ${vm.model}` }))].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={async () => {
+                          setVisualModelId(opt.value)
+                          setShowVisualModelDropdown(false)
+                          try {
+                            await updateConfig("visual_model_id", { visual_model_id: opt.value || null })
+                            toast.success("Visual model updated")
+                          } catch {
+                            toast.error("Failed to update visual model")
+                          }
+                        }}
+                        className="relative flex items-center gap-2 w-full cursor-pointer overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] text-muted-foreground hover:text-primary-foreground group"
+                        style={{ background: "none", border: "none" }}
+                      >
+                        <span className="relative z-10 flex items-center gap-2 px-3 py-2 w-full text-[10px]" style={{ letterSpacing: "0.05em" }}>
+                          {visualModelId === opt.value || (!visualModelId && opt.value === "") ? (
+                            <span className="w-1.5 h-1.5 bg-primary group-hover:bg-primary-foreground rotate-45 shrink-0 transition-colors duration-700" />
+                          ) : (
+                            <span className="w-1.5 h-1.5 shrink-0" />
+                          )}
+                          {opt.label}
+                        </span>
+                        <span className="absolute inset-0 z-0 bg-primary transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] scale-x-0 origin-left group-hover:scale-x-100 group-hover:origin-right" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )
@@ -784,7 +915,7 @@ export function LLMProviderView() {
         {/* ── Embedding Providers ── */}
         <section className="border-b border-border pb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-light tracking-tight uppercase">Embedding Models</h2>
+            <h2 className="text-[18px] font-[350] tracking-tight uppercase">EMBEDDING MODELS</h2>
             <Button variant="default" onClick={() => { setEditingEmb(null); setEmbDialogOpen(true) }} className="font-light uppercase">ADD</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -800,7 +931,7 @@ export function LLMProviderView() {
         {/* ── Rerank Providers ── */}
         <section className="border-b border-border pb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-light tracking-tight uppercase">Rerank Models</h2>
+            <h2 className="text-[18px] font-[350] tracking-tight uppercase">RERANK MODELS</h2>
             <Button variant="default" onClick={() => { setEditingRerank(null); setRerankDialogOpen(true) }} className="font-light uppercase">ADD</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -815,12 +946,12 @@ export function LLMProviderView() {
 
         {/* ── Transcription ── */}
         <section className="border-b border-border pb-6">
-          <h2 className="text-lg font-light tracking-tight uppercase mb-4">Transcription</h2>
+          <h2 className="text-[18px] font-[350] tracking-tight uppercase mb-4">TRANSCRIPTION</h2>
 
           {/* File Transcription */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-light tracking-tight uppercase">File Transcription</h3>
+              <h3 className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">FILE TRANSCRIPTION</h3>
               <Button variant="default" size="sm" onClick={() => { setEditingFileTrans(null); setFileTransLangHints([]); setFileTransDialogOpen(true) }} className="font-light uppercase">ADD</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -831,7 +962,12 @@ export function LLMProviderView() {
                   isDownloaded={modelDownloaded["builtin-local-file"] ?? false}
                   onTest={async () => { const r = await testFileTranscriptionProvider(builtinFileTrans.id); return { success: r.success, message: r.message, error: r.error } }}
                   onSetDefault={async () => { await setActiveFileTranscriptionProvider(builtinFileTrans.id); fetchFileTransProviders() }}
-                  onToggleLoad={async () => { await toggleModelLoad(builtinFileTrans.id); fetchFileTransProviders(); startPolling() }}
+                  onToggleLoad={async () => {
+                    const res = await toggleModelLoad(builtinFileTrans.id)
+                    if (!res.success && res.error) toast.error(res.error)
+                    fetchFileTransProviders()
+                    startPolling()
+                  }}
                   onDownload={() => setModelDownloadOpen(true)}
                 />
               )}
@@ -847,7 +983,7 @@ export function LLMProviderView() {
           {/* Realtime Transcription */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-light tracking-tight uppercase">Realtime Transcription</h3>
+              <h3 className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">REALTIME TRANSCRIPTION</h3>
               <Button variant="default" size="sm" onClick={() => { setEditingRtTrans(null); setRtTransDialogOpen(true) }} className="font-light uppercase">ADD</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -858,7 +994,12 @@ export function LLMProviderView() {
                   isDownloaded={modelDownloaded["builtin-local-rt"] ?? false}
                   onTest={async () => { const r = await testRealtimeTranscriptionProvider(builtinRtTrans.id); return { success: r.success, message: r.message, error: r.error } }}
                   onSetDefault={async () => { await setActiveRealtimeTranscriptionProvider(builtinRtTrans.id); fetchRtTransProviders() }}
-                  onToggleLoad={async () => { await toggleModelLoad(builtinRtTrans.id); fetchRtTransProviders(); startPolling() }}
+                  onToggleLoad={async () => {
+                    const res = await toggleModelLoad(builtinRtTrans.id)
+                    if (!res.success && res.error) toast.error(res.error)
+                    fetchRtTransProviders()
+                    startPolling()
+                  }}
                   onDownload={() => setModelDownloadOpen(true)}
                 />
               )}
@@ -873,7 +1014,7 @@ export function LLMProviderView() {
 
           {/* Local Transcription Model Settings */}
           <div>
-            <h3 className="text-sm font-light tracking-tight uppercase mb-3">Local Model Settings</h3>
+            <h3 className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground mb-3">LOCAL MODEL SETTINGS</h3>
             <div className="flex items-center gap-3">
               <span className="text-sm font-light uppercase tracking-wider">Device</span>
               {(["cpu", "auto", "cuda", "mps"] as const).map((d) => (
@@ -897,12 +1038,12 @@ export function LLMProviderView() {
         {/* ── Hot Words Management ── */}
         <section className="border-b border-border pb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-light tracking-tight uppercase">Hot Words</h2>
+            <h2 className="text-[18px] font-[350] tracking-tight uppercase">HOT WORDS</h2>
             <Button variant="default" onClick={() => setHotWordsManagerOpen(true)} className="font-light uppercase">
               Manage
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="font-normal text-[12px] text-muted-foreground/80 leading-relaxed">
             Manage hot word libraries to improve transcription accuracy for domain-specific terms like names, acronyms, and jargon.
           </p>
         </section>
@@ -910,10 +1051,10 @@ export function LLMProviderView() {
         {/* ── MinerU CLOUD PARSING ── */}
         <section className="pb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-light tracking-tight">MinerU CLOUD PARSING</h2>
+            <h2 className="text-[18px] font-[350] tracking-tight">MinerU CLOUD PARSING</h2>
           </div>
           <div className="space-y-4">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="font-normal text-[12px] text-muted-foreground/80 mb-4 leading-relaxed">
                 Use MinerU's cloud API for high-quality document parsing with better table, formula, and layout preservation.
                 Get your API token at{" "}
                 <a href="https://mineru.net/apiManage/token" target="_blank" rel="noopener noreferrer" className="text-primary underline">mineru.net/apiManage/token</a>.
@@ -922,8 +1063,8 @@ export function LLMProviderView() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-light tracking-wider">ENABLE MinerU</span>
-                  <p className="text-xs text-muted-foreground">Toggle cloud parsing globally</p>
+                  <span className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">ENABLE MinerU</span>
+                  <p className="font-normal text-[11px] text-muted-foreground/80 mt-0.5 leading-relaxed">Toggle cloud parsing globally</p>
                 </div>
                 <button
                   onClick={async () => {
@@ -956,7 +1097,7 @@ export function LLMProviderView() {
                 <div className="overflow-hidden">
                   <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-light uppercase tracking-wider">API Token</label>
+                      <label className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">API Token</label>
                   <div className="relative">
                     <Input
                       type={showMineruToken ? "text" : "password"}
@@ -977,69 +1118,127 @@ export function LLMProviderView() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  {/* Model Version — custom dropdown */}
                   <div className="space-y-2">
-                    <label className="text-sm font-light uppercase tracking-wider">Model Version</label>
-                    <select
-                      value={mineruModel}
-                      onChange={(e) => setMineruModel(e.target.value)}
-                      disabled={!mineruEnabled}
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="pipeline">Pipeline (Default)</option>
-                      <option value="vlm">VLM (Recommended)</option>
-                      <option value="MinerU-HTML">MinerU HTML</option>
-                    </select>
+                    <label className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">Model Version</label>
+                    <div className="relative" ref={mineruModelMenuRef}>
+                      <button
+                        type="button"
+                        ref={mineruModelBtnRef}
+                        onClick={() => { if (!mineruEnabled) return; updateMineruPositions(); setShowMineruLanguageDropdown(false); setShowMineruModelDropdown(!showMineruModelDropdown) }}
+                        disabled={!mineruEnabled}
+                        className="group relative flex items-center justify-center overflow-hidden rounded px-3 py-2 font-sans transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] w-full"
+                        style={{ fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: showMineruModelDropdown ? "var(--color-primary-foreground)" : "var(--color-primary)" }}
+                      >
+                        <span className="relative z-10 whitespace-nowrap">
+                          {MINERU_MODEL_OPTIONS.find(o => o.value === mineruModel)?.label || mineruModel}
+                        </span>
+                        <span
+                          className="absolute inset-0 z-0 transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] bg-primary"
+                          style={{ transform: showMineruModelDropdown ? "scaleX(1)" : "scaleX(0)", transformOrigin: showMineruModelDropdown ? "right" : "left" }}
+                        />
+                      </button>
+                      <div
+                        className={`fixed z-[100] mt-1 flex-col overflow-hidden rounded border border-primary/40 bg-popover shadow-md transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                          showMineruModelDropdown ? "opacity-100 visible translate-y-0 pointer-events-auto" : "opacity-0 invisible -translate-y-3 pointer-events-none"
+                        }`}
+                        style={{ width: mineruModelPos.width, top: mineruModelPos.top, left: mineruModelPos.left }}
+                      >
+                        {MINERU_MODEL_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { setMineruModel(opt.value); setShowMineruModelDropdown(false) }}
+                            className="relative flex items-center gap-2 w-full cursor-pointer overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] text-muted-foreground hover:text-primary-foreground group"
+                            style={{ background: "none", border: "none" }}
+                          >
+                            <span className="relative z-10 flex items-center gap-2 px-3 py-2 w-full text-[10px]" style={{ letterSpacing: "0.05em" }}>
+                              {mineruModel === opt.value ? (
+                                <span className="w-1.5 h-1.5 bg-primary group-hover:bg-primary-foreground rotate-45 shrink-0 transition-colors duration-700" />
+                              ) : (
+                                <span className="w-1.5 h-1.5 shrink-0" />
+                              )}
+                              {opt.label}
+                            </span>
+                            <span className="absolute inset-0 z-0 bg-primary transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] scale-x-0 origin-left group-hover:scale-x-100 group-hover:origin-right" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Language — custom dropdown */}
                   <div className="space-y-2">
-                    <label className="text-sm font-light uppercase tracking-wider">Language</label>
-                    <select
-                      value={mineruLanguage}
-                      onChange={(e) => setMineruLanguage(e.target.value)}
-                      disabled={!mineruEnabled}
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="ch">Chinese + English + Traditional Chinese</option>
-                      <option value="ch_server">Chinese + Japanese (server)</option>
-                      <option value="en">English</option>
-                      <option value="japan">Japanese</option>
-                      <option value="korean">Korean</option>
-                      <option value="chinese_cht">Traditional Chinese</option>
-                      <option value="ta">Tamil</option>
-                      <option value="te">Telugu</option>
-                      <option value="ka">Kannada</option>
-                      <option value="el">Greek</option>
-                      <option value="th">Thai</option>
-                      <option value="latin">Latin (40+ languages)</option>
-                      <option value="arabic">Arabic</option>
-                      <option value="cyrillic">Cyrillic (30+ languages)</option>
-                      <option value="east_slavic">East Slavic (Russian/Ukrainian/Belarusian)</option>
-                      <option value="devanagari">Devanagari (Hindi/Marathi/Nepali)</option>
-                    </select>
+                    <label className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">Language</label>
+                    <div className="relative" ref={mineruLangMenuRef}>
+                      <button
+                        type="button"
+                        ref={mineruLangBtnRef}
+                        onClick={() => { if (!mineruEnabled) return; updateMineruPositions(); setShowMineruModelDropdown(false); setShowMineruLanguageDropdown(!showMineruLanguageDropdown) }}
+                        disabled={!mineruEnabled}
+                        className="group relative flex items-center justify-center overflow-hidden rounded px-3 py-2 font-sans transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] w-full"
+                        style={{ fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: showMineruLanguageDropdown ? "var(--color-primary-foreground)" : "var(--color-primary)" }}
+                      >
+                        <span className="relative z-10 whitespace-nowrap">
+                          {MINERU_LANGUAGE_OPTIONS.find(o => o.value === mineruLanguage)?.label || mineruLanguage}
+                        </span>
+                        <span
+                          className="absolute inset-0 z-0 transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] bg-primary"
+                          style={{ transform: showMineruLanguageDropdown ? "scaleX(1)" : "scaleX(0)", transformOrigin: showMineruLanguageDropdown ? "right" : "left" }}
+                        />
+                      </button>
+                      <div
+                        className={`fixed z-[100] mt-1 flex-col overflow-hidden rounded border border-primary/40 bg-popover shadow-md transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] max-h-64 overflow-y-auto ${
+                          showMineruLanguageDropdown ? "opacity-100 visible translate-y-0 pointer-events-auto" : "opacity-0 invisible -translate-y-3 pointer-events-none"
+                        }`}
+                        style={{ width: mineruLangPos.width, top: mineruLangPos.top, left: mineruLangPos.left }}
+                      >
+                        {MINERU_LANGUAGE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { setMineruLanguage(opt.value); setShowMineruLanguageDropdown(false) }}
+                            className="relative flex items-center gap-2 w-full cursor-pointer overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] text-muted-foreground hover:text-primary-foreground group"
+                            style={{ background: "none", border: "none" }}
+                          >
+                            <span className="relative z-10 flex items-center gap-2 px-3 py-2 w-full text-[10px]" style={{ letterSpacing: "0.05em" }}>
+                              {mineruLanguage === opt.value ? (
+                                <span className="w-1.5 h-1.5 bg-primary group-hover:bg-primary-foreground rotate-45 shrink-0 transition-colors duration-700" />
+                              ) : (
+                                <span className="w-1.5 h-1.5 shrink-0" />
+                              )}
+                              {opt.label}
+                            </span>
+                            <span className="absolute inset-0 z-0 bg-primary transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] scale-x-0 origin-left group-hover:scale-x-100 group-hover:origin-right" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-light uppercase tracking-wider">Parsing Options</label>
+                  <label className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">Parsing Options</label>
                   <div className="space-y-2">
                     <label className={`flex items-start gap-2 text-sm ${!mineruEnabled ? "cursor-default" : "cursor-pointer"}`}>
                       <input type="checkbox" checked={mineruOcr} onChange={(e) => setMineruOcr(e.target.checked)} disabled={!mineruEnabled} className="rounded mt-0.5" />
                       <div>
-                        <span className="font-light uppercase tracking-wider">Force OCR</span>
-                        <p className="text-xs text-muted-foreground">Force OCR on all pages. When off, MinerU auto-detects whether pages need OCR (scanned/image pages will still be OCR'd automatically).</p>
+                        <span className="text-[12px] font-normal uppercase tracking-[0.08em] text-muted-foreground">Force OCR</span>
+                        <p className="font-normal text-[11px] text-muted-foreground/80 mt-0.5 leading-relaxed">Force OCR on all pages. When off, MinerU auto-detects whether pages need OCR (scanned/image pages will still be OCR'd automatically).</p>
                       </div>
                     </label>
                     <label className={`flex items-start gap-2 text-sm ${!mineruEnabled ? "cursor-default" : "cursor-pointer"}`}>
                       <input type="checkbox" checked={mineruFormula} onChange={(e) => setMineruFormula(e.target.checked)} disabled={!mineruEnabled} className="rounded mt-0.5" />
                       <div>
-                        <span className="font-light uppercase tracking-wider">Formula Recognition</span>
-                        <p className="text-xs text-muted-foreground">Recognize mathematical formulas and convert to LaTeX. Recommended for academic/technical documents.</p>
+                        <span className="text-[12px] font-normal uppercase tracking-[0.08em] text-muted-foreground">Formula Recognition</span>
+                        <p className="font-normal text-[11px] text-muted-foreground/80 mt-0.5 leading-relaxed">Recognize mathematical formulas and convert to LaTeX. Recommended for academic/technical documents.</p>
                       </div>
                     </label>
                     <label className={`flex items-start gap-2 text-sm ${!mineruEnabled ? "cursor-default" : "cursor-pointer"}`}>
                       <input type="checkbox" checked={mineruTable} onChange={(e) => setMineruTable(e.target.checked)} disabled={!mineruEnabled} className="rounded mt-0.5" />
                       <div>
-                        <span className="font-light uppercase tracking-wider">Table Recognition</span>
-                        <p className="text-xs text-muted-foreground">Detect and extract tables as structured Markdown. Recommended for documents with tabular data.</p>
+                        <span className="text-[12px] font-normal uppercase tracking-[0.08em] text-muted-foreground">Table Recognition</span>
+                        <p className="font-normal text-[11px] text-muted-foreground/80 mt-0.5 leading-relaxed">Detect and extract tables as structured Markdown. Recommended for documents with tabular data.</p>
                       </div>
                     </label>
                   </div>
@@ -1209,6 +1408,9 @@ export function LLMProviderView() {
           fetchRerankProviders()
           fetchFileTransProviders()
           fetchRtTransProviders()
+          getConfig().then((c) => {
+            if (c.visual_model_id && typeof c.visual_model_id === "string") setVisualModelId(c.visual_model_id)
+          }).catch(() => {})
         }}
       />
     </div>

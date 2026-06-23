@@ -980,7 +980,7 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
             {/* Ingestion status tag */}
             {ingested && (
               <span
-                className="text-[9px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 shrink-0 text-primary"
+                className="text-[10px] font-medium uppercase tracking-[0.1em] px-1.5 py-0.5 shrink-0 text-primary"
                 style={{
                   background: "rgba(26,94,61,0.08)",
                   borderRadius: "2px",
@@ -994,7 +994,7 @@ export function NoteEditorDialog({ collection, noteId, open, onOpenChange }: Not
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-[9px] font-light uppercase tracking-[0.12em] text-muted-foreground hover:text-primary"
+              className="h-7 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground hover:text-primary"
               onClick={ingested ? handleRemoveIngestionClick : handleIngestClick}
               disabled={ingesting}
             >

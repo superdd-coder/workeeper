@@ -77,17 +77,27 @@ class OpenAICompatLLM(LLMProvider):
             return ""
         return _strip_think(response.choices[0].message.content or "")
 
-    def describe_image(self, image_base64: str, image_mime: str = "image/png") -> str:
+    # Default visual description prompt — used when caller doesn't provide one
+    _DEFAULT_VISUAL_PROMPT = (
+        "Analyze this image and describe it concisely in 2-5 sentences of plain text — no markdown, no bullet points, no headings. "
+        "Cover what is shown (photo, chart, diagram, etc.), key elements and their relationships, any visible text transcribed exactly, "
+        "and notable data like numbers, labels, or axes. Be objective and factual, no speculation. "
+        "Match the language of visible text, or use English if none. Omit purely decorative or background elements."
+    )
+
+    def describe_image(self, image_base64: str, image_mime: str = "image/png", prompt: str = "") -> str:
         """Generate a text description of an image using Vision API.
 
         Args:
             image_base64: Base64-encoded image data (without data URI prefix)
             image_mime: MIME type of the image (default image/png)
+            prompt: Custom prompt; uses _DEFAULT_VISUAL_PROMPT if empty
 
         Returns:
-            Generated description string (without the [Image Description]: prefix)
+            Generated description string
         """
         logger.info("LLM describe_image: model=%s mime=%s", self._model, image_mime)
+        text_prompt = prompt or self._DEFAULT_VISUAL_PROMPT
         data_uri = f"data:{image_mime};base64,{image_base64}"
         messages = [
             {
@@ -95,7 +105,7 @@ class OpenAICompatLLM(LLMProvider):
                 "content": [
                     {
                         "type": "text",
-                        "text": "Describe this image concisely in 2-4 sentences. Cover: what is shown, key elements, and any visible text. Be brief and objective. Match the language of visible text, or use English if none.",
+                        "text": text_prompt,
                     },
                     {
                         "type": "image_url",

@@ -8,26 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.providers.base import LLMProvider
 from src.rag.chunker import Chunk
 
-SUMMARY_PROMPT = """Write a brief 1-2 sentence summary of this document. Focus on: what is this document about, who is it for, and what is its purpose. Keep it concise and readable.
-
-Document:
-{document}"""
-
-CONTEXT_PROMPT = """You are helping build a search index. Given a document summary, a chunk from that document, and its surrounding chunks, write 1-2 sentences of background context that a reader would need to understand this chunk but CANNOT figure out from the chunk text alone.
-
-Document summary: {summary}
-
-{surrounding_section}Chunk text: {chunk}
-
-Rules:
-- Only include information NOT present in the chunk itself
-- Write in natural, readable sentences (not key=value format)
-- Focus on: what section of the document this is from, what was discussed before this chunk, who/what entities are referenced
-- Use surrounding chunks to understand what comes before/after this chunk
-- If the chunk is self-contained and understandable on its own, output nothing
-- Keep it brief — max 2 short sentences
-
-Output only the context text, nothing else."""
+from src.prompts import CONTEXT_PROMPT, SUMMARY_PROMPT, STRUCTURED_SUMMARY_PROMPT  # noqa: E402
 
 _executor = ThreadPoolExecutor(max_workers=10)
 
@@ -107,36 +88,6 @@ class ContextualRetrieval:
 # Structured Summary Generation
 # ---------------------------------------------------------------------------
 
-STRUCTURED_SUMMARY_PROMPT = """Analyze the following document and extract key information. Be extremely conservative — only extract facts that are EXPLICITLY stated in the document. Do NOT infer, assume, or generalize.
-
-Document:
-{document}
-
-Output in this exact format:
-
-===DATA===
-(Numerical data that is EXPLICITLY stated in the document with clear context)
-- Example: The contract value for Project Alpha is 5 million USD
-- Example: The system design capacity is 3,000 m3/day
-
-===FACTS===
-(Factual statements that are EXPLICITLY stated — not inferred)
-- Example: Company X is the contractor for Project Alpha
-- Example: The project uses Dow BW30-400 RO membranes
-
-===INSIGHTS===
-(Only include if there is STRONG direct evidence in the document. If uncertain, write "- None identified")
-- Example: Based on the 3-month delay mentioned by the project manager, the Q3 deadline appears at risk
-
-Rules:
-- MAX 10 items per category. Quality over quantity.
-- ONLY extract what is explicitly written. Do NOT generalize from examples or discussions.
-- If a number or fact is mentioned in a hypothetical, example, or "what-if" scenario, do NOT treat it as a real data point.
-- If you are not sure whether something is a fact or an assumption, do NOT include it.
-- Each item MUST clearly state what it refers to. Do not use vague references like "the project" — name the specific project/entity.
-- If a category has nothing that meets these criteria, write "- None identified"
-- Do NOT use square brackets [] around words. Write plain sentences.
-- Pay attention to context: if someone says "let's model a 1000 m3/day project", that is a discussion about modeling, NOT a statement about an actual project's capacity."""
 
 
 def _parse_structured_summary(raw: str) -> dict[str, list[str]]:

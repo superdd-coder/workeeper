@@ -54,7 +54,7 @@ export function Header() {
           <Terminal className="h-3.5 w-3.5" />
         </Button>
 
-        <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-[11px] font-normal uppercase tracking-[0.12em] text-muted-foreground/80">
           <span
             className="w-1.5 h-1.5 rounded-full"
             style={{ background: isOnline ? "var(--ze-green)" : "#dc2626" }}
