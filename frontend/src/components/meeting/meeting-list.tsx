@@ -16,7 +16,7 @@ export function MeetingList({ meetings, activeMeeting, onSelect, onCreated, onDe
   return (
     <div className="w-64 border-r border-border flex flex-col shrink-0">
       <div className="flex items-center justify-between px-4 h-12 border-b border-border">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+        <span className="text-[14px] font-[350] uppercase tracking-[0.08em] text-muted-foreground">
           Recordings
         </span>
         <CreateMeetingButton onCreated={onCreated} />

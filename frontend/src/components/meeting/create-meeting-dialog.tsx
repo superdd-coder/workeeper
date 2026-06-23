@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Plus, Loader2 } from "lucide-react"
 import { createMeeting } from "@/api/client"
 import { toast } from "sonner"
@@ -29,14 +28,15 @@ export function CreateMeetingButton({ onCreated }: CreateMeetingButtonProps) {
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-6 w-6"
+    <button
+      type="button"
       onClick={handleCreate}
       disabled={creating}
+      className="text-[10px] font-medium uppercase tracking-[0.1em] px-2 py-0.5 cursor-pointer transition-opacity hover:opacity-85 bg-primary text-primary-foreground border-none"
+      style={{ borderRadius: "2px", fontFamily: "var(--font-sans)" }}
     >
-      {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-    </Button>
+      {creating ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : <Plus className="h-3 w-3 inline mr-1" />}
+      + New
+    </button>
   )
 }

@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger, TabsIndicator } from "@/compo
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Database } from "lucide-react"
 import { useAppStore } from "@/stores/app-store"
 import { getCollectionConfig, getFiles, getFileChunks, deleteDocument, uploadFiles, getTasks, clearCompletedTasks, cancelTask, retryTask, type FileListItem, type ChunkDetail, type TaskInfo } from "@/api/client"
 import { toast } from "sonner"
@@ -330,12 +329,6 @@ export function DatabaseView() {
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground animate-tab-in">
             <div className="text-center">
-              <div
-                className="w-10 h-10 border mx-auto mb-3 flex items-center justify-center border-border"
-                style={{ borderRadius: "3px", opacity: 0.3 }}
-              >
-                <Database className="h-5 w-5" />
-              </div>
               <p className="text-sm" style={{ fontFamily: "var(--font-serif)" }}>Select a collection or create one</p>
             </div>
           </div>

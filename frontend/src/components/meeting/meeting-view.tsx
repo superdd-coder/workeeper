@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Mic, Share, Pencil, Check, X, Loader2 } from "lucide-react"
+import { Share, Pencil, Check, X, Loader2 } from "lucide-react"
 import { useAppStore } from "@/stores/app-store"
 import { useAudioRecorder } from "@/hooks/use-audio-recorder"
 import { useTranscription } from "@/hooks/use-transcription"
@@ -643,8 +643,7 @@ export function MeetingView() {
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground animate-tab-in">
             <div className="text-center">
-              <Mic className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Select a meeting or create one</p>
+              <p className="text-sm" style={{ fontFamily: "var(--font-serif)" }}>Select a meeting or create one</p>
             </div>
           </div>
         )}

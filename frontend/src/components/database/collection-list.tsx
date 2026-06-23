@@ -15,7 +15,7 @@ interface CollectionListProps {
 export function CollectionList({ collections, activeCollection, onSelect, onCreate, onDelete, onRename }: CollectionListProps) {
   return (
     <div
-      className="w-[220px] border-r flex flex-col shrink-0 border-border bg-background"
+      className="w-64 border-r flex flex-col shrink-0 border-border bg-background"
     >
       {/* Header */}
       <div
