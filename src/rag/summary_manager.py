@@ -25,6 +25,7 @@ class SummaryManager:
         self.db = db
         self._requested_vector_size = vector_size
         self.vector_size = vector_size  # may be updated by ensure_collection
+        self.ensure_collection()
 
     # ── Collection management ────────────────────────────────
 
