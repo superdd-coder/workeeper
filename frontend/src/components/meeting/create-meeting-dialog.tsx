@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Plus, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { createMeeting } from "@/api/client"
 import { toast } from "sonner"
 
@@ -35,7 +35,7 @@ export function CreateMeetingButton({ onCreated }: CreateMeetingButtonProps) {
       className="text-[10px] font-medium uppercase tracking-[0.1em] px-2 py-0.5 cursor-pointer transition-opacity hover:opacity-85 bg-primary text-primary-foreground border-none"
       style={{ borderRadius: "2px", fontFamily: "var(--font-sans)" }}
     >
-      {creating ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : <Plus className="h-3 w-3 inline mr-1" />}
+      {creating ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : null}
       + New
     </button>
   )
