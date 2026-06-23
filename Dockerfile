@@ -30,7 +30,8 @@ RUN pip install --no-cache-dir \
 
 COPY . .
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
-RUN chmod +x entrypoint.sh
+# Strip CRLF line endings (Windows git clone) then make executable
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
 
 ARG API_PORT=18900
 EXPOSE ${API_PORT}
