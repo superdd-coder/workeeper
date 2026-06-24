@@ -56,6 +56,7 @@ skills-lock.json
 # Project AI assistant configs
 CLAUDE.md
 AGENTS.md
+development_doc/
 design-demos/
 .planning/
 docs/
